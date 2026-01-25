@@ -11,18 +11,30 @@ requires-python = ">=3.11"
 dependencies = [
     "requests>=2.32.5",
     "python-dotenv>=1.0.0",
+    "flask>=3.0.0",
 ]
 
 [dependency-groups]
 dev = [
     "mypy>=1.19.1",
     "ruff>=0.14.14",
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
 
+[tool.pytest.ini_options]
+testpaths = ["test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "integration: marks tests as integration tests (real API calls, slower)",
+    "unit: marks tests as unit tests (fast, with mocks)",
+]
 
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
