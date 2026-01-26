@@ -1,13 +1,24 @@
 """GigaChat API wrapper functions."""
 
-import requests
+import os
 
+import requests
+from dotenv import load_dotenv
+
+
+load_dotenv()
 
 # Global configuration
-GIGACHAT_BASE_URL = 'https://gigachat.devices.sberbank.ru/api/v1'
-GIGACHAT_CERT_PATH = '/path/to/cert.pem'  # Placeholder for SSL certificate
-GIGACHAT_KEY_PATH = '/path/to/key.pem'  # Placeholder for SSL key
-GIGACHAT_CHAIN_PATH = '/path/to/ca_bundle.pem'  # Placeholder for CA bundle
+GIGACHAT_BASE_URL = os.getenv(
+    'GIGACHAT_BASE_URL', 'https://gigachat.devices.sberbank.ru/api/v1'
+)
+GIGACHAT_CERT_PATH = os.getenv('GIGACHAT_CERT_PATH', '/path/to/cert.pem')
+GIGACHAT_KEY_PATH = os.getenv('GIGACHAT_KEY_PATH', '/path/to/key.pem')
+GIGACHAT_CHAIN_PATH = os.getenv('GIGACHAT_CHAIN_PATH', '/path/to/ca_bundle.pem')
+
+assert os.path.exists(GIGACHAT_CERT_PATH), f'wrong {GIGACHAT_CERT_PATH=}'
+assert os.path.exists(GIGACHAT_KEY_PATH), f'wrong {GIGACHAT_KEY_PATH=}'
+assert os.path.exists(GIGACHAT_CHAIN_PATH), f'wrong {GIGACHAT_CHAIN_PATH=}'
 
 
 def post_chat_completions(payload: dict) -> dict:
