@@ -18,9 +18,7 @@ def test_chat_completions():
         'messages': [{'role': 'user', 'content': 'Hello, how are you?'}],
         'max_tokens': 10,
     }
-
     result = post_chat_completions(payload)
-    pprint.pprint(result)
     assert isinstance(result, dict)
     assert result.get('choices'), 'Expected choices in OpenRouter result'
     choices = result['choices']
