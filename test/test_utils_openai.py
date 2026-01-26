@@ -1,5 +1,6 @@
 import os
 import pprint
+from typing import Any
 
 import pytest
 
@@ -12,7 +13,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def test_chat_completions() -> None:
+def test_chat_completions():
     """Test chat completions with OpenRouter."""
     payload = {
         'messages': [{'role': 'user', 'content': 'Hello, how are you?'}],
@@ -20,4 +21,12 @@ def test_chat_completions() -> None:
     }
 
     result = post_chat_completions(payload)
-    pprint.pprint(result)
+    assert isinstance(result, dict)
+    assert result.get('choices'), 'Expected choices in OpenRouter result'
+    choices = result['choices']
+    assert isinstance(choices, list) and choices
+    first_choice = choices[0]
+    message = first_choice.get('message')
+    assert isinstance(message, dict)
+    content = message.get('content')
+    assert isinstance(content, str) and content.strip(), 'Message content is empty'

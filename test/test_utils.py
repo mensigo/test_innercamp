@@ -12,24 +12,36 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _assert_response_has_data(response: dict[str, Any]) -> None:
-    """Ensure the helper returns at least one field in the response."""
-    assert isinstance(response, dict)
-    assert response, 'Expected non-empty response from Gigachat helper'
-
-
-def test_post_chat_completions() -> None:
+def test_post_chat_completions():
     """Call chat completions with a short prompt."""
     payload = {
         'messages': [{'role': 'user', 'content': 'Hello from pytest'}],
         'max_tokens': 4,
     }
-
     result = post_chat_completions(payload)
-    _assert_response_has_data(result)
+    assert isinstance(result, dict)
+    assert result, 'Expected non-empty response from Gigachat helper'
+    assert 'value' in result, 'Expected Gigachat response to include value'
+    value = result['value']
+    assert isinstance(value, dict)
+    choices = value.get('choices')
+    assert isinstance(choices, list) and choices, 'Choices missing from response'
+    first_choice = choices[0]
+    message = first_choice.get('message')
+    assert isinstance(message, dict)
+    content = message.get('content')
+    assert isinstance(content, str) and content.strip(), 'Message content is empty'
 
 
-def test_get_models() -> None:
+def test_get_models():
     """Request the list of available models."""
     result = get_models()
-    _assert_response_has_data(result)
+    assert isinstance(result, dict)
+    assert result.get('object') == 'list'
+    data = result.get('data')
+    assert isinstance(data, list) and data, 'Expected data list in models result'
+    first = data[0]
+    assert isinstance(first, dict)
+    assert first.get('id'), 'Model entry missing id'
+    assert first.get('object') == 'model'
+    assert first.get('owned_by'), 'Model entry missing owner'
