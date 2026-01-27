@@ -68,7 +68,7 @@ CASES = [
 
 def _extract_text(result: dict) -> str:
     """Get the main message text from a Gigachat response."""
-    return result['value']['choices'][0]['message']['content'].strip()
+    return result['choices'][0]['message']['content'].strip()
 
 
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
