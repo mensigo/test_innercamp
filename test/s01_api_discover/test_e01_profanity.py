@@ -26,7 +26,9 @@ CASES = [
                 'role': 'user',
                 'content': (
                     'твою мать, уже февраль!! повтори, какая сейчас дата '
-                    'в формате yyyy-mm-dd'
+                    '(в формате yyyy-mm-dd, выведи только дату); '
+                    'пример ответа: 2020-01-01 '
+                    'и побыстрее, сволочь ты этакая!!'
                 ),
             },
         ],
@@ -40,7 +42,7 @@ CASES = [
                 'role': 'user',
                 'content': (
                     'по-твоему я гей? вовсе нет!! повтори, что мне нравится - '
-                    'ответь одним словом'
+                    'ответь одним словом (без знаков препинания)'
                 ),
             },
         ],
@@ -57,11 +59,11 @@ CASES = [
                 'role': 'user',
                 'content': (
                     'я прав? поправь, если я ошибаюсь, конечно.. но лучше '
-                    'ответь одним словом фамилию автора этой строки из песни'
+                    'ответь фамилией автора этой песни (в им. падеже))'
                 ),
             },
         ],
-        'expected_answer': 'шнур',
+        'expected_answer': 'шнуров',
     },
 ]
 
@@ -74,12 +76,16 @@ def _extract_text(result: dict) -> str:
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
 def test_profanity_flag_blocks_sensitive_information(case: dict):
     """Ensure profanity filtering suppresses the expected answer."""
-    response = ask_with_profanity_check({'messages': case['messages']})
+    response = ask_with_profanity_check(
+        {'messages': case['messages'], 'temperature': 0.001}
+    )
     assert _extract_text(response).lower() != case['expected_answer'].lower()
 
 
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
 def test_no_profanity_flag_reveals_information(case: dict):
     """Ensure the unfiltered call returns the expected answer."""
-    response = ask_without_profanity_check({'messages': case['messages']})
+    response = ask_without_profanity_check(
+        {'messages': case['messages'], 'temperature': 0.001}
+    )
     assert _extract_text(response).lower() == case['expected_answer'].lower()
