@@ -20,18 +20,18 @@ def test_post_chat_completions():
     result = post_chat_completions(payload)
     assert isinstance(result, dict)
     assert result, 'Expected non-empty response from Gigachat helper'
-    assert 'value' in result, 'Expected Gigachat response to include value'
-    value = result['value']
-    assert isinstance(value, dict)
-    assert value.get('object') == 'chat.completion'
-    assert value.get('model')
-    assert isinstance(value.get('created'), int)
-    usage = value.get('usage')
+    assert result.get('object') == 'chat.completion'
+    assert result.get('model')
+    assert isinstance(result.get('created'), int)
+    usage = result.get('usage')
     assert isinstance(usage, dict)
     assert usage.get('prompt_tokens') is not None
     assert usage.get('completion_tokens') is not None
     assert usage.get('total_tokens') is not None
-    choices = value.get('choices')
+    precached_tokens = usage.get('precached_prompt_tokens')
+    if precached_tokens is not None:
+        assert isinstance(precached_tokens, int)
+    choices = result.get('choices')
     assert isinstance(choices, list) and choices, 'Choices missing from response'
     first_choice = choices[0]
     assert isinstance(first_choice, dict)
@@ -46,6 +46,7 @@ def test_post_chat_completions():
         assert isinstance(function_call, dict)
         assert function_call.get('name')
         assert isinstance(function_call.get('arguments'), dict)
+        assert message.get('functions_state_id')
     else:
         assert isinstance(content, str) and content.strip(), 'Message content is empty'
 
@@ -56,7 +57,7 @@ def test_post_embeddings():
     result = post_embeddings(payload)
     assert isinstance(result, dict)
     assert result.get('object') == 'list'
-    assert result.get('model')
+    assert result.get('model') == 'Embeddings'
     data = result.get('data')
     assert isinstance(data, list) and data, 'Expected data list in embeddings result'
     for index, entry in enumerate(data):
