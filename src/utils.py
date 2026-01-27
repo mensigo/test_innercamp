@@ -15,6 +15,8 @@ GIGACHAT_BASE_URL = os.getenv(
 GIGACHAT_CERT_PATH = os.getenv('GIGACHAT_CERT_PATH', '/path/to/cert.pem')
 GIGACHAT_KEY_PATH = os.getenv('GIGACHAT_KEY_PATH', '/path/to/key.pem')
 GIGACHAT_CHAIN_PATH = os.getenv('GIGACHAT_CHAIN_PATH', '/path/to/ca_bundle.pem')
+DEFAULT_CHAT_MODEL = 'GigaChat-2-Max'
+DEFAULT_EMBEDDINGS_MODEL = 'Embeddings'
 
 assert os.path.exists(GIGACHAT_CERT_PATH), f'wrong {GIGACHAT_CERT_PATH=}'
 assert os.path.exists(GIGACHAT_KEY_PATH), f'wrong {GIGACHAT_KEY_PATH=}'
@@ -27,6 +29,8 @@ def post_chat_completions(payload: dict) -> dict:
     Sends POST request to /chat/completions endpoint.
     """
     url = f'{GIGACHAT_BASE_URL}/chat/completions'
+    if 'model' not in payload:
+        payload['model'] = DEFAULT_CHAT_MODEL
     try:
         response = requests.post(
             url,
@@ -46,6 +50,8 @@ def post_embeddings(payload: dict) -> dict:
     Sends POST request to /embeddings endpoint.
     """
     url = f'{GIGACHAT_BASE_URL}/embeddings'
+    if 'model' not in payload:
+        payload['model'] = DEFAULT_EMBEDDINGS_MODEL
     try:
         response = requests.post(
             url,
