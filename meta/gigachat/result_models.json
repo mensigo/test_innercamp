@@ -1,0 +1,35 @@
+{
+    "object": "list",
+    "data": [
+        {
+            "id": "GigaChat-2",
+            "object": "model",
+            "owned_by": "salutedevices",
+            "type": "chat"
+        },
+        {
+            "id": "GigaChat-2-Max",
+            "object": "model",
+            "owned_by": "salutedevices",
+            "type": "chat"
+        },
+        {
+            "id": "GigaChat-2-Pro",
+            "object": "model",
+            "owned_by": "salutedevices",
+            "type": "chat"
+        },
+        {
+            "id": "GigaFilter",
+            "object": "model",
+            "owned_by": "salutedevices",
+            "type": "filter"
+        },
+        {
+            "id": "Embeddings",
+            "object": "model",
+            "owned_by": "salutedevices",
+            "type": "embedder"
+        }
+    ]
+}

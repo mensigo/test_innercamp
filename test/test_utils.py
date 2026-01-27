@@ -23,13 +23,31 @@ def test_post_chat_completions():
     assert 'value' in result, 'Expected Gigachat response to include value'
     value = result['value']
     assert isinstance(value, dict)
+    assert value.get('object') == 'chat.completion'
+    assert value.get('model')
+    assert isinstance(value.get('created'), int)
+    usage = value.get('usage')
+    assert isinstance(usage, dict)
+    assert usage.get('prompt_tokens') is not None
+    assert usage.get('completion_tokens') is not None
+    assert usage.get('total_tokens') is not None
     choices = value.get('choices')
     assert isinstance(choices, list) and choices, 'Choices missing from response'
     first_choice = choices[0]
+    assert isinstance(first_choice, dict)
+    assert first_choice.get('index') == 0
+    assert first_choice.get('finish_reason')
     message = first_choice.get('message')
     assert isinstance(message, dict)
+    assert message.get('role') == 'assistant'
     content = message.get('content')
-    assert isinstance(content, str) and content.strip(), 'Message content is empty'
+    function_call = message.get('function_call')
+    if function_call is not None:
+        assert isinstance(function_call, dict)
+        assert function_call.get('name')
+        assert isinstance(function_call.get('arguments'), dict)
+    else:
+        assert isinstance(content, str) and content.strip(), 'Message content is empty'
 
 
 def test_post_embeddings():
@@ -38,18 +56,18 @@ def test_post_embeddings():
     result = post_embeddings(payload)
     assert isinstance(result, dict)
     assert result.get('object') == 'list'
-    assert 'model' in result
+    assert result.get('model')
     data = result.get('data')
     assert isinstance(data, list) and data, 'Expected data list in embeddings result'
-    first = data[0]
-    assert isinstance(first, dict)
-    assert first.get('object') == 'embedding'
-    embedding = first.get('embedding')
-    assert isinstance(embedding, list), 'Embedding should be a list'
-    assert first.get('index') == 0
-    usage = first.get('usage')
-    assert isinstance(usage, dict)
-    assert usage.get('prompt_tokens') is not None
+    for index, entry in enumerate(data):
+        assert isinstance(entry, dict)
+        assert entry.get('object') == 'embedding'
+        embedding = entry.get('embedding')
+        assert isinstance(embedding, list), 'Embedding should be a list'
+        assert entry.get('index') == index
+        usage = entry.get('usage')
+        assert isinstance(usage, dict)
+        assert usage.get('prompt_tokens') is not None
 
 
 def test_get_models():
@@ -59,8 +77,9 @@ def test_get_models():
     assert result.get('object') == 'list'
     data = result.get('data')
     assert isinstance(data, list) and data, 'Expected data list in models result'
-    first = data[0]
-    assert isinstance(first, dict)
-    assert first.get('id'), 'Model entry missing id'
-    assert first.get('object') == 'model'
-    assert first.get('owned_by'), 'Model entry missing owner'
+    for entry in data:
+        assert isinstance(entry, dict)
+        assert entry.get('id'), 'Model entry missing id'
+        assert entry.get('object') == 'model'
+        assert entry.get('owned_by'), 'Model entry missing owner'
+        assert entry.get('type'), 'Model entry missing type'
