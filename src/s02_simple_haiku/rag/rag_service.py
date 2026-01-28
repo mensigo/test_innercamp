@@ -7,6 +7,7 @@ import faiss
 import numpy as np
 from flask import Flask, jsonify, request
 
+from src import config
 from src.utils_openai import post_embeddings
 
 DATA_DIR = Path(__file__).resolve().parent / 'data'
@@ -170,5 +171,10 @@ def search():
 
 init_rag_index()
 
+
 if __name__ == '__main__':
-    app.run(host='localhost', port=8091, debug=True)
+    app.run(
+        host='localhost',
+        port=config.tool_rag_port,
+        debug=config.flask_debug,
+    )

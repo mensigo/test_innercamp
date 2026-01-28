@@ -10,8 +10,11 @@ load_dotenv(env_path)
 
 class Config:
     def __init__(self):
-        self.debug = os.getenv('DEBUG', 'false').lower() == 'true'
-        self.insigma = os.getenv('INSIGMA', 'false').lower() == 'true'
+        self.debug = self._parse_bool(os.getenv('DEBUG'), default=False)
+        self.insigma = self._parse_bool(os.getenv('INSIGMA'), default=False)
+        self.flask_debug = self._parse_bool(os.getenv('FLASK_DEBUG'), default=False)
+        self.tool_rag_port = self._parse_port(os.getenv('TOOL_RAG_PORT'), 8091)
+        self.tool_haiku_port = self._parse_port(os.getenv('TOOL_HAIKU_PORT'), 8092)
 
         self.gigachat_base_url = os.getenv('GIGACHAT_BASE_URL')
         self.gigachat_cert_path = os.getenv('GIGACHAT_CERT_PATH')
@@ -23,6 +26,25 @@ class Config:
         self.model = os.getenv('MODEL', 'openai/gpt-3.5-turbo')
 
         self.validate()
+
+    def _parse_bool(self, value: str | None, default: bool) -> bool:
+        """
+        Parse bool env values.
+        """
+        if value is None:
+            return default
+        return value.strip().lower() in {'1', 'true', 'yes'}
+
+    def _parse_port(self, value: str | None, default: int) -> int:
+        """
+        Parse port env values.
+        """
+        if not value:
+            return default
+        try:
+            return int(value)
+        except ValueError as ex:
+            raise ValueError(f'Invalid port value: {value}') from ex
 
     def validate(self):
         required_vars = (
@@ -40,6 +62,14 @@ class Config:
             raise EnvironmentError(
                 'Missing required env vars: {}'.format(','.join(missing))
             )
+
+        # check : type, sanity
+        if not isinstance(self.tool_rag_port, int) or not isinstance(
+            self.tool_haiku_port, int
+        ):
+            raise ValueError('Tool ports must be integers')
+        if self.tool_rag_port == self.tool_haiku_port:
+            raise ValueError('Tool ports must be different')
 
         # check : files exist
         if self.insigma:

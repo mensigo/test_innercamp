@@ -2,6 +2,7 @@
 
 import requests
 
+from src import config
 from src.utils_openai import post_chat_completions
 
 
@@ -56,7 +57,7 @@ def count_syllables_via_tool(haiku_text: str) -> dict | None:
     Call Flask service to count syllables in haiku.
     Returns dictionary with syllable stats or None on error.
     """
-    url = 'http://localhost:8090/count'
+    url = f'http://localhost:{config.tool_haiku_port}/count'
     payload = {'text': haiku_text}
 
     try:

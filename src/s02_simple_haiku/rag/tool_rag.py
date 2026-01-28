@@ -2,9 +2,8 @@
 
 import requests
 
+from src import config
 from src.utils_openai import post_chat_completions
-
-RAG_SERVICE_URL = 'http://localhost:8091/search'
 
 
 def fetch_context(question: str, top_k: int = 3) -> list[dict]:
@@ -13,8 +12,9 @@ def fetch_context(question: str, top_k: int = 3) -> list[dict]:
     """
     payload = {'question': question, 'top_k': top_k}
 
+    url = f'http://localhost:{config.tool_rag_port}/search'
     try:
-        response = requests.post(RAG_SERVICE_URL, json=payload, timeout=8)
+        response = requests.post(url, json=payload, timeout=8)
         response.raise_for_status()
         data = response.json()
         return data.get('results', [])
