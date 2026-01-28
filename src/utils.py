@@ -24,6 +24,7 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
             json=payload,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         if verbose:
             print('ans:', response, response.text)
@@ -47,6 +48,7 @@ def post_embeddings(payload: dict) -> dict:
             json=payload,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -65,6 +67,7 @@ def get_models() -> dict:
             url,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -83,6 +86,7 @@ def get_files_list() -> dict:
             url,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -102,6 +106,7 @@ def post_files(payload: dict) -> dict:
             json=payload,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -120,6 +125,7 @@ def post_files_delete(file_id: str) -> dict:
             url,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -138,6 +144,7 @@ def get_files_content(file_id: str) -> dict:
             url,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -156,6 +163,7 @@ def get_files_info(file_id: str) -> dict:
             url,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()
@@ -175,6 +183,7 @@ def get_tokens_count(payload: dict) -> dict:
             json=payload,
             cert=(config.gigachat_cert_path, config.gigachat_key_path),
             verify=config.gigachat_chain_path,
+            timeout=30,
         )
         response.raise_for_status()
         return response.json()

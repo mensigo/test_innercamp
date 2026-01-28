@@ -73,7 +73,7 @@ def _extract_finish_reason(result: dict) -> str:
 
 
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
-def test_profanity_flag_blocks_unappropriate_information(case: dict):
+def test_profanity_flag_blocks_inappropriate_information(case: dict):
     """Ensure profanity filtering suppresses the expected answer."""
     response = ask_with_profanity_check(
         {
