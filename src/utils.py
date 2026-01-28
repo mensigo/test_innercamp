@@ -23,7 +23,7 @@ assert os.path.exists(GIGACHAT_KEY_PATH), f'wrong {GIGACHAT_KEY_PATH=}'
 assert os.path.exists(GIGACHAT_CHAIN_PATH), f'wrong {GIGACHAT_CHAIN_PATH=}'
 
 
-def post_chat_completions(payload: dict) -> dict:
+def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     """
     Generate model response based on messages.
     Sends POST request to /chat/completions endpoint.
@@ -32,12 +32,16 @@ def post_chat_completions(payload: dict) -> dict:
     if 'model' not in payload:
         payload['model'] = DEFAULT_CHAT_MODEL
     try:
+        if verbose:
+            print('req:', payload)
         response = requests.post(
             url,
             json=payload,
             cert=(GIGACHAT_CERT_PATH, GIGACHAT_KEY_PATH),
             verify=GIGACHAT_CHAIN_PATH,
         )
+        if verbose:
+            print('ans:', response, response.text)
         response.raise_for_status()
         return response.json()
     except requests.exceptions.RequestException as e:
