@@ -140,7 +140,7 @@ def search_chunks(question: str, top_k: int) -> list[dict]:
         return []
 
     query_vector = np.array(embeddings, dtype='float32')
-    distances, indices = RAG_INDEX.search(query_vector, top_k)
+    _, indices = RAG_INDEX.search(query_vector, top_k)
 
     results = []
     for idx in indices[0]:

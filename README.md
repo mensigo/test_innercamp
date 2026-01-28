@@ -9,19 +9,19 @@
 
 1) Сервис подсчета слогов:
 
-```
+```bash
 python -m src.s02_simple_haiku.haiku.tool_count_service
 ```
 
 2) RAG сервис:
 
-```
+```bash
 python -m src.s02_simple_haiku.rag.rag_service
 ```
 
 ### Запуск агента
 
-```
+```bash
 python -m src.s02_simple_haiku.agent
 ```
 

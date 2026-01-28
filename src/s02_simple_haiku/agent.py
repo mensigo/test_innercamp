@@ -153,6 +153,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
             args = json.loads(arguments) if isinstance(arguments, str) else arguments
         except json.JSONDecodeError:
             args = {}
+        args = args if isinstance(args, dict) else {}
         return name, args
 
     function_call = message.get('function_call')
@@ -163,6 +164,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
             args = json.loads(arguments) if isinstance(arguments, str) else arguments
         except json.JSONDecodeError:
             args = {}
+        args = args if isinstance(args, dict) else {}
         return name, args
 
     print('LLM не выбрал инструмент.')
