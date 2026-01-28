@@ -1,16 +1,9 @@
 """OpenAI API wrapper functions using OpenRouter."""
 
-import os
 import requests
-from dotenv import load_dotenv
 
+from src import config
 
-# Load environment variables
-load_dotenv()
-
-# Global configuration
-OPENROUTER_API_KEY = os.getenv('OPENROUTER_API_KEY', '')
-OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1'
 DEFAULT_MODEL = 'openai/gpt-3.5-turbo'
 DEFAULT_EMBEDDING_MODEL = 'openai/text-embedding-3-small'
 
@@ -20,14 +13,14 @@ def post_chat_completions(payload: dict) -> dict:
     Send chat completion request to OpenRouter.
     Uses openai/gpt-3.5-turbo model by default.
     """
-    url = f'{OPENROUTER_BASE_URL}/chat/completions'
+    url = f'{config.openrouter_base_url}/chat/completions'
 
     # Set default model if not provided in payload
     if 'model' not in payload:
         payload['model'] = DEFAULT_MODEL
 
     headers = {
-        'Authorization': f'Bearer {OPENROUTER_API_KEY}',
+        'Authorization': f'Bearer {config.openrouter_key}',
         'Content-Type': 'application/json',
     }
 
@@ -44,12 +37,12 @@ def post_embeddings(payload: dict) -> dict:
     Send embeddings request to OpenRouter.
     Uses text-embedding-3-small model by default.
     """
-    url = f'{OPENROUTER_BASE_URL}/embeddings'
+    url = f'{config.openrouter_base_url}/embeddings'
     if 'model' not in payload:
         payload['model'] = DEFAULT_EMBEDDING_MODEL
 
     headers = {
-        'Authorization': f'Bearer {OPENROUTER_API_KEY}',
+        'Authorization': f'Bearer {config.openrouter_key}',
         'Content-Type': 'application/json',
     }
 

@@ -10,7 +10,6 @@ from src.s01_api_discover.e01_profanity import (
     ask_without_profanity_check,
 )
 
-
 INSIGMA = os.getenv('INSIGMA', 'false').lower() == 'true'
 pytestmark = pytest.mark.skipif(
     not INSIGMA, reason='Run Gigachat helpers only when INSIGMA is true'

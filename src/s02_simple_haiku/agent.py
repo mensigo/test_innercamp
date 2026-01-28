@@ -2,12 +2,18 @@
 
 import json
 
+from src import config
 from src.s02_simple_haiku.haiku.tool_haiku import (
     count_syllables_via_tool,
     generate_haiku,
 )
 from src.s02_simple_haiku.rag.tool_rag import answer_question
-from src.utils_openai import post_chat_completions
+
+if config.insigma:
+    from src.utils import post_chat_completions
+else:
+    from src.utils_openai import post_chat_completions
+
 
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
@@ -30,19 +36,20 @@ def classify_intent(user_input: str, **kwargs) -> bool:
     Classify if user request is about Japanese poetry or haiku generation.
     """
     system_prompt = """Ты классификатор запросов.
-Определи, относится ли запрос к японской поэзии (хайку/хокку) или генерации хайку.
+Определи, относится ли запрос к японской поэзии или генерации хайку.
 
 Примеры запросов ДЛЯ НАШЕГО АГЕНТА (отвечай "да"):
 - "напиши хайку о море"
 - "сгенерируй хокку"
 - "что такое хайку?"
-- "объясни про хокку"
-- "история жанра хайку"
+- "кто такие рюкюсцы?"
+- "сколько канси в Манъёсю?"
 
 Примеры запросов НЕ ДЛЯ НАШЕГО АГЕНТА (отвечай "нет"):
 - "напиши стишок"
 - "расскажи анекдот"
 - "погода завтра"
+- "что там с гренландией?"
 
 Отвечай ТОЛЬКО одним словом: "да" или "нет"."""
 
