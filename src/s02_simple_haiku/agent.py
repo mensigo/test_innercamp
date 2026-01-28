@@ -1,31 +1,48 @@
-"""Interactive haiku-generating agent with intent classification and syllable counting."""
+"""CLI agent with intent classification and tool routing."""
 
-import sys
-import requests
-from pathlib import Path
+import json
 
+from src.s02_simple_haiku.haiku.tool_haiku import (
+    count_syllables_via_tool,
+    generate_haiku,
+)
+from src.s02_simple_haiku.rag.tool_rag import answer_question
 from src.utils_openai import post_chat_completions
+
+EXIT_COMMANDS = {'exit', 'quit', 'q'}
+HELP_COMMANDS = {'/help', 'help', '?'}
+
+
+def print_help():
+    """
+    Print greeting and available capabilities.
+    """
+    print('=== Мини-агент по японской поэзии ===')
+    print('Могу:')
+    print('- отвечать на вопросы о хайку/хокку (RAG)')
+    print('- генерировать хайку по теме')
+    print('Для выхода введите: exit, quit или q')
+    print('Команда помощи: /help\n')
 
 
 def classify_intent(user_input: str, **kwargs) -> bool:
     """
-    Classify if user wants haiku/hokku generation.
-    Returns True if request is for haiku, False otherwise.
+    Classify if user request is about Japanese poetry or haiku generation.
     """
-    system_prompt = """Ты классификатор запросов. Определи, хочет ли пользователь сгенерировать хайку или хокку.
+    system_prompt = """Ты классификатор запросов.
+Определи, относится ли запрос к японской поэзии (хайку/хокку) или генерации хайку.
 
-Примеры запросов ДЛЯ ХАЙКУ (отвечай "да"):
+Примеры запросов ДЛЯ НАШЕГО АГЕНТА (отвечай "да"):
 - "напиши хайку о море"
 - "сгенерируй хокку"
-- "хайку про кота"
-- "хоку мне о весне"
-- "создай хайку"
-
-Примеры запросов НЕ ДЛЯ ХАЙКУ (отвечай "нет"):
-- "напиши стишок"
-- "расскажи анекдот"
 - "что такое хайку?"
 - "объясни про хокку"
+- "история жанра хайку"
+
+Примеры запросов НЕ ДЛЯ НАШЕГО АГЕНТА (отвечай "нет"):
+- "напиши стишок"
+- "расскажи анекдот"
+- "погода завтра"
 
 Отвечай ТОЛЬКО одним словом: "да" или "нет"."""
 
@@ -52,119 +69,157 @@ def classify_intent(user_input: str, **kwargs) -> bool:
         return False
 
 
-def extract_topic(user_input: str) -> str:
+def select_tool_call(user_input: str) -> tuple[str, dict] | None:
     """
-    Extract topic from user request.
-    Returns extracted topic or default 'окончание зимы'.
+    Select tool via function calling for the given user input.
     """
-    system_prompt = """Ты помощник, который извлекает тему для хайку из запроса пользователя.
+    system_prompt = """Ты определяешь, какой инструмент вызвать.
+Если пользователь спрашивает о японской поэзии, вызови rag_search.
+Если пользователь просит сгенерировать хайку/хокку, вызови generate_haiku.
+Вызывай ровно один инструмент."""
 
-Если пользователь указал конкретную тему (море, весна, кот, работа и т.д.), верни только эту тему одним-двумя словами.
-Если тема не указана явно, верни: "окончание зимы"
-
-Примеры:
-- "напиши хайку о море" -> "море"
-- "сгенерируй хокку про весну" -> "весна"
-- "хайку про кота" -> "кот"
-- "создай хайку" -> "окончание зимы"
-- "хокку мне" -> "окончание зимы"
-
-Отвечай ТОЛЬКО темой, без дополнительных слов."""
+    tools = [
+        {
+            'type': 'function',
+            'function': {
+                'name': 'rag_search',
+                'description': 'Поиск ответа на вопрос о японской поэзии',
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'question': {
+                            'type': 'string',
+                            'description': 'Вопрос пользователя о хайку/хокку',
+                        }
+                    },
+                    'required': ['question'],
+                },
+            },
+        },
+        {
+            'type': 'function',
+            'function': {
+                'name': 'generate_haiku',
+                'description': 'Генерация хайку по теме',
+                'parameters': {
+                    'type': 'object',
+                    'properties': {
+                        'theme': {
+                            'type': 'string',
+                            'description': 'Тема хайку одним-двумя словами',
+                        }
+                    },
+                    'required': ['theme'],
+                },
+            },
+        },
+    ]
 
     payload = {
         'messages': [
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_input},
         ],
-        'temperature': 0.001,
+        'tools': tools,
+        'tool_choice': 'auto',
+        'temperature': 0.0,
     }
 
     response = post_chat_completions(payload)
-
     if 'error' in response:
         print(f'LLM Error: {response["error"]}')
-        return 'окончание зимы'
+        return None
 
     try:
-        topic = response['choices'][0]['message']['content'].strip()
-        return topic if topic else 'окончание зимы'
+        message = response['choices'][0]['message']
     except (KeyError, IndexError) as e:
         print(f'LLM Response Error: {e}')
-        return 'окончание зимы'
+        return None
+
+    tool_calls = message.get('tool_calls', [])
+    if tool_calls:
+        tool_call = tool_calls[0]
+        function = tool_call.get('function', {})
+        name = function.get('name')
+        arguments = function.get('arguments', '{}')
+        try:
+            args = json.loads(arguments) if isinstance(arguments, str) else arguments
+        except json.JSONDecodeError:
+            args = {}
+        return name, args
+
+    function_call = message.get('function_call')
+    if function_call:
+        name = function_call.get('name')
+        arguments = function_call.get('arguments', '{}')
+        try:
+            args = json.loads(arguments) if isinstance(arguments, str) else arguments
+        except json.JSONDecodeError:
+            args = {}
+        return name, args
+
+    print('LLM не выбрал инструмент.')
+    return None
 
 
-def generate_haiku(topic: str) -> str:
+def detect_theme_change(user_input: str) -> str | None:
     """
-    Generate Russian haiku on specified topic.
-    Returns haiku text with 5-7-5 syllable structure.
+    Detect theme change intent and extract new theme if provided.
     """
-    system_prompt = """Ты поэт, который пишет хайку на русском языке.
+    lowered = user_input.lower()
+    triggers = [
+        'сменить тему на ',
+        'смени тему на ',
+        'поменяй тему на ',
+        'измени тему на ',
+        'изменить тему на ',
+    ]
 
-СТРОГИЕ ТРЕБОВАНИЯ:
-1. Формат 5-7-5 слогов (первая строка - 5 слогов, вторая - 7 слогов, третья - 5 слогов)
-2. Структура:
-   - Строка 1: Короткий образ (5 слогов)
-   - Строка 2: Развитие образа, сопоставление (7 слогов)
-   - Строка 3: Второй образ, неожиданная связь или вывод (5 слогов)
-3. Используй тему, указанную пользователем
-4. Пиши в стиле традиционного японского хайку
-5. Выводи ТОЛЬКО текст хайку, по одной строке, БЕЗ нумерации, БЕЗ дополнительных комментариев
+    for trigger in triggers:
+        if trigger in lowered:
+            start = lowered.index(trigger) + len(trigger)
+            return user_input[start:].strip()
 
-Пример хайку:
-Море в тишине
-Волны шепчут о вечном
-Закат золотой"""
-
-    user_prompt = f'Напиши хайку на тему: {topic}'
-
-    payload = {
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_prompt},
-        ],
-        'temperature': 0.5,
-    }
-
-    response = post_chat_completions(payload)
-
-    if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
+    if 'сменить тему' in lowered or 'другая тема' in lowered:
         return ''
 
-    try:
-        haiku = response['choices'][0]['message']['content'].strip()
-        return haiku
-    except (KeyError, IndexError) as e:
-        print(f'LLM Response Error: {e}')
-        return ''
+    return None
 
 
-def count_syllables_via_tool(haiku_text: str) -> dict | None:
+def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool:
     """
-    Call Flask service to count syllables in haiku.
-    Returns dictionary with syllable stats or None on error.
+    Validate tool arguments before calling tool.
     """
-    url = 'http://localhost:8090/count'
-    payload = {'text': haiku_text}
+    if tool_name == 'rag_search':
+        question = str(tool_args.get('question', '')).strip()
+        if not question:
+            print('Не удалось определить вопрос для RAG.')
+            return False
+        return True
 
-    try:
-        response = requests.post(url, json=payload, timeout=5)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.ConnectionError:
-        print(
-            'TOOL: Не удалось подключиться к сервису подсчета слогов (Connection refused)'
-        )
-        return None
-    except requests.exceptions.Timeout:
-        print('TOOL: Превышено время ожидания ответа от сервиса (Timeout)')
-        return None
-    except requests.exceptions.RequestException as e:
-        print(f'TOOL: Ошибка при обращении к сервису - {e}')
-        return None
-    except Exception as e:
-        print(f'TOOL: Неожиданная ошибка - {e}')
-        return None
+    if tool_name == 'generate_haiku':
+        theme = str(tool_args.get('theme', '')).strip()
+        theme_change = detect_theme_change(user_input)
+        if theme_change is not None:
+            if theme_change:
+                print(f'Тема изменена на: {theme_change}')
+            else:
+                print('Укажи новую тему после команды смены темы.')
+            print('Сформулируй запрос заново.\n')
+            return False
+
+        if not theme:
+            print('Не удалось определить тему для хайку.')
+            return False
+
+        if len(theme) > 60:
+            print('Тема слишком длинная. Сократи до 1-2 слов.')
+            return False
+
+        return True
+
+    print('Неизвестный инструмент.')
+    return False
 
 
 def display_haiku(haiku: str, stats: dict | None):
@@ -176,7 +231,6 @@ def display_haiku(haiku: str, stats: dict | None):
         return
 
     lines = haiku.strip().split('\n')
-
     print('\n--- Хайку ---')
 
     if stats and 'syllables_per_line' in stats:
@@ -190,7 +244,6 @@ def display_haiku(haiku: str, stats: dict | None):
         print(f'\nВсего слогов: {stats.get("total_syllables", "?")}')
         print(f'Всего слов: {stats.get("total_words", "?")}')
     else:
-        # Display without stats if tool failed
         for line in lines:
             print(line.strip())
 
@@ -199,10 +252,9 @@ def display_haiku(haiku: str, stats: dict | None):
 
 def main():
     """
-    Main interactive loop for haiku agent.
+    Main interactive loop for the haiku agent.
     """
-    print('=== Агент генерации хайку ===')
-    print('Для выхода введите: exit, quit или q\n')
+    print_help()
 
     while True:
         user_input = input('Введите запрос: ').strip()
@@ -210,31 +262,48 @@ def main():
         if not user_input:
             continue
 
-        if user_input.lower() in ['exit', 'quit', 'q']:
+        lowered = user_input.lower()
+        if lowered in EXIT_COMMANDS:
             print('До свидания!')
             break
 
-        # Step 1: Classify intent
+        if lowered in HELP_COMMANDS:
+            print_help()
+            continue
+
         if not classify_intent(user_input):
             print('CLF: не наш агент\n')
             continue
 
-        # Step 2: Extract topic
-        topic = extract_topic(user_input)
-        print(f'[Тема: {topic}]')
-
-        # Step 3: Generate haiku
-        haiku = generate_haiku(topic)
-
-        if not haiku:
-            print('Ошибка при генерации хайку.\n')
+        tool_call = select_tool_call(user_input)
+        if not tool_call:
+            print('Не удалось определить инструмент.\n')
             continue
 
-        # Step 4: Count syllables via tool
-        stats = count_syllables_via_tool(haiku)
+        tool_name, tool_args = tool_call
+        if not validate_tool_call(tool_name, tool_args, user_input):
+            continue
 
-        # Step 5: Display haiku
-        display_haiku(haiku, stats)
+        if tool_name == 'rag_search':
+            question = str(tool_args.get('question', '')).strip()
+            answer = answer_question(question)
+            print(f'\n{answer}\n')
+            continue
+
+        if tool_name == 'generate_haiku':
+            theme = str(tool_args.get('theme', '')).strip()
+            print(f'[Тема: {theme}]')
+            haiku = generate_haiku(theme)
+
+            if not haiku:
+                print('Ошибка при генерации хайку.\n')
+                continue
+
+            stats = count_syllables_via_tool(haiku)
+            display_haiku(haiku, stats)
+            continue
+
+        print('Не удалось выполнить инструмент.\n')
 
 
 if __name__ == '__main__':

@@ -1,7 +1,8 @@
 """Flask service for counting syllables in haiku text."""
 
-from flask import Flask, request, jsonify
-from split_word import split_into_syllables_simple
+from flask import Flask, jsonify, request
+
+from src.s02_simple_haiku.haiku.split_word import split_into_syllables_simple
 
 app = Flask(__name__)
 
