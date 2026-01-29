@@ -18,6 +18,9 @@ else:
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
 
+freezing = 1e-3
+verbose = False
+
 
 def print_help():
     """
@@ -31,10 +34,21 @@ def print_help():
     print('Команда помощи: /help\n')
 
 
+def print_reminder():
+    """
+    Remind available capabilities.
+    """
+    print('Не совсем понимаю запрос. Мои возможности:')
+    print('- отвечать на вопросы о хайку/хокку (RAG)')
+    print('- генерировать хайку по теме')
+
+
 def classify_intent(user_input: str, **kwargs) -> bool:
     """
     Classify if user request is about Japanese poetry or haiku generation.
     """
+    print('[classify_intent] start')
+
     system_prompt = """Ты классификатор запросов.
 Определи, относится ли запрос к японской поэзии или генерации хайку.
 
@@ -65,109 +79,162 @@ def classify_intent(user_input: str, **kwargs) -> bool:
     response = post_chat_completions(payload)
 
     if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
+        print('[classify_intent] LLM Error: {}'.format(response['error']))
         return False
 
     try:
         content = response['choices'][0]['message']['content'].strip().lower()
         return 'да' in content or 'yes' in content
+
     except (KeyError, IndexError) as e:
-        print(f'LLM Response Error: {e}')
+        print(f'[classify_intent] LLM Response Error: {e}')
         return False
 
 
 def select_tool_call(user_input: str) -> tuple[str, dict] | None:
     """
     Select tool via function calling for the given user input.
+    Return name,args if succeeded, None otherwise.
     """
+    print('[select_tool_call] start')
+
+    # system
     system_prompt = """Ты определяешь, какой инструмент вызвать.
 Если пользователь спрашивает о японской поэзии, вызови rag_search.
 Если пользователь просит сгенерировать хайку/хокку, вызови generate_haiku.
 Вызывай ровно один инструмент."""
 
-    tools = [
+    if not config.insigma:
+        system_prompt += """
+
+Примеры взаимодействия (generate_haiku):
+Пользователь: Создай хайку о зимнем утре
+Ты: generate_haiku({"theme": "Зимнее утро"})
+
+Примеры взаимодействия (rag_search):
+Пользователь: Когда был написан манъесю
+Ты: rag_search({"question": "Дата написания Манъёсю"})
+"""
+
+    # tool desctiption
+    tools_giga = [
         {
-            'type': 'function',
-            'function': {
-                'name': 'rag_search',
-                'description': 'Поиск ответа на вопрос о японской поэзии',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'question': {
-                            'type': 'string',
-                            'description': 'Вопрос пользователя о хайку/хокку',
-                        }
+            'name': 'rag_search',
+            'description': 'Поиск ответа на вопрос о японской поэзии',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'question': {
+                        'type': 'string',
+                        'description': 'Вопрос пользователя о японской поэзии',
                     },
-                    'required': ['question'],
                 },
+                'required': ['question'],
+            },
+            'few_shot_examples': [
+                {
+                    'request': 'Есть ли в старояпонском священные цифры?',
+                    'params': {
+                        'question': 'Старояпонский цифры в старояпонском языке?'
+                    },
+                }
+            ],
+            'return_parameters': {
+                'properties': {
+                    'answer': {
+                        'type': 'string',
+                        'description': 'Подробный ответ (например, исторический факт или число)',
+                    },
+                    'chunk_title_list': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Заголовки статей, например ["Японская поэзия", "Старояпонский язык", "Кайфусо"]',
+                    },
+                }
             },
         },
         {
-            'type': 'function',
-            'function': {
-                'name': 'generate_haiku',
-                'description': 'Генерация хайку по теме',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'theme': {
-                            'type': 'string',
-                            'description': 'Тема хайку одним-двумя словами',
-                        }
+            'name': 'generate_haiku',
+            'description': 'Генерация хайку по теме',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'theme': {
+                        'type': 'string',
+                        'description': 'Тема хайку одним-двумя словами',
                     },
-                    'required': ['theme'],
                 },
+                'required': ['theme'],
+            },
+            'few_shot_examples': [
+                {
+                    'request': 'Напиши хайку о бурном море',
+                    'params': {'theme': 'Бурное море'},
+                },
+            ],
+            'return_parameters': {
+                'properties': {
+                    'haiku': {
+                        'type': 'string',
+                        'description': 'Сгенерированное хайку на заданную тему',
+                    },
+                    'format': {
+                        'type': 'string',
+                        'description': 'Число слогов в получившемся хайку (например, "7-5-7")',
+                    },
+                    'iterations': {
+                        'type': 'integer',
+                        'description': 'Число генераций, например 1',
+                    },
+                }
             },
         },
     ]
+    tools_openai = [
+        {k: v for k, v in t.items() if k in ('name', 'description', 'parameters')}
+        for t in tools_giga
+    ]
+    tools = tools_giga if config.insigma else tools_openai
 
-    payload = {
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_input},
-        ],
-        'tools': tools,
-        'tool_choice': 'auto',
-        'temperature': 0.0,
-    }
+    # payload
+    if config.insigma:
+        payload = {
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_input},
+            ],
+            'funcitons': tools,
+            'function_call': 'auto',
+            'temperature': freezing,
+        }
+    else:
+        payload = {
+            'messages': [
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_input},
+            ],
+            'functions': tools,
+            'temperature': freezing,
+        }
 
-    response = post_chat_completions(payload)
+    # request
+    response = post_chat_completions(payload, verbose)
     if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
+        print(f'[select_tool_call] LLM Error: {response["error"]}')
         return None
 
-    try:
-        message = response['choices'][0]['message']
-    except (KeyError, IndexError) as e:
-        print(f'LLM Response Error: {e}')
-        return None
-
-    tool_calls = message.get('tool_calls', [])
-    if tool_calls:
-        tool_call = tool_calls[0]
-        function = tool_call.get('function', {})
-        name = function.get('name')
-        arguments = function.get('arguments', '{}')
-        try:
-            args = json.loads(arguments) if isinstance(arguments, str) else arguments
-        except json.JSONDecodeError:
-            args = {}
-        args = args if isinstance(args, dict) else {}
-        return name, args
-
+    # handle response
+    message = response['choices'][0]['message']
     function_call = message.get('function_call')
+
     if function_call:
         name = function_call.get('name')
         arguments = function_call.get('arguments', '{}')
-        try:
-            args = json.loads(arguments) if isinstance(arguments, str) else arguments
-        except json.JSONDecodeError:
-            args = {}
-        args = args if isinstance(args, dict) else {}
-        return name, args
+        if isinstance(arguments, str):
+            arguments = json.loads(arguments)
+        return name, arguments
 
-    print('LLM не выбрал инструмент.')
+    print('[select_tool_call] LLM не выбрал инструмент')
     return None
 
 
@@ -175,6 +242,8 @@ def detect_theme_change(user_input: str) -> str | None:
     """
     Detect theme change intent and extract new theme if provided.
     """
+    print('[detect_theme_change] start')
+
     lowered = user_input.lower()
     triggers = [
         'сменить тему на ',
@@ -199,6 +268,8 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
     """
     Validate tool arguments before calling tool.
     """
+    print('[validate_tool_call] start')
+
     if tool_name == 'rag_search':
         question = str(tool_args.get('question', '')).strip()
         if not question:
@@ -213,7 +284,7 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
             if theme_change:
                 print(f'Тема изменена на: {theme_change}')
             else:
-                print('Укажи новую тему после команды смены темы.')
+                print('Укажите новую тему после команды смены темы.')
             print('Сформулируй запрос заново.\n')
             return False
 
@@ -221,13 +292,13 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
             print('Не удалось определить тему для хайку.')
             return False
 
-        if len(theme) > 60:
+        if len(theme) > 20:
             print('Тема слишком длинная. Сократи до 1-2 слов.')
             return False
 
         return True
 
-    print('Неизвестный инструмент.')
+    print('[validate_tool_call] Неизвестный инструмент.')
     return False
 
 
@@ -268,6 +339,8 @@ def main():
     while True:
         user_input = input('Введите запрос: ').strip()
 
+        # TODO: check length (deny if too long)
+
         if not user_input:
             continue
 
@@ -282,6 +355,7 @@ def main():
 
         if not classify_intent(user_input):
             print('CLF: не наш агент\n')
+            print_reminder()
             continue
 
         tool_call = select_tool_call(user_input)
