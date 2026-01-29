@@ -1,7 +1,10 @@
 """Flask service for counting syllables in haiku text."""
 
-from flask import Flask, request, jsonify
-from split_word import split_into_syllables_simple
+from flask import Flask, jsonify, request
+
+from src import config
+
+from src.s02_simple_haiku.haiku.split_word import split_into_syllables_simple
 
 app = Flask(__name__)
 
@@ -56,4 +59,8 @@ def count_syllables():
 
 
 if __name__ == '__main__':
-    app.run(host='localhost', port=8090, debug=True)
+    app.run(
+        host='localhost',
+        port=config.tool_haiku_port,
+        debug=config.flask_debug,
+    )

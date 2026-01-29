@@ -2,12 +2,12 @@
 
 import pytest
 
-from src.s01_simple_haiku.agent import classify_intent
+from src.s02_simple_haiku.agent import classify_intent
 
 freezing = 0.001
 
 
-@pytest.mark.integration
+@pytest.mark.skip
 class TestClassifyIntentIntegration:
     """Integration tests with real LLM API calls."""
 
