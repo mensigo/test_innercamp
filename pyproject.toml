@@ -38,8 +38,9 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 env_files = ".env"
 markers = [
-    "integration: marks tests as integration tests (real API calls, slower)",
-    "unit: marks tests as unit tests (fast, with mocks)",
+    "integration: test multiple components interaction",
+    "unit: test single components (fast, with mocks)",
+    "llm: test api calls (check prompts)",
 ]
 
 [tool.ruff]
