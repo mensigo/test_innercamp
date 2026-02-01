@@ -3,7 +3,6 @@
 from flask import Flask, jsonify, request
 
 from src import config
-
 from src.s02_simple_haiku.haiku.split_word import split_into_syllables_simple
 
 app = Flask(__name__)

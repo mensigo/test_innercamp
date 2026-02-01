@@ -1,10 +1,8 @@
 import os
-import pprint
 
 import pytest
 
 from src.utils_openai import post_chat_completions, post_embeddings
-
 
 INSIGMA = os.getenv('INSIGMA', 'false').lower() == 'true'
 pytestmark = pytest.mark.skipif(

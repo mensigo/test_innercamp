@@ -1,8 +1,8 @@
 """FAISS index build and persistence helpers."""
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
-import re
 
 import faiss
 import numpy as np

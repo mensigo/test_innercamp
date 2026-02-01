@@ -4,11 +4,12 @@ import numpy as np
 from flask import Flask, jsonify, request
 
 from src import config, post_chat_completions
+
 from .build_index import (
+    RagChunk,
     build_rag_chunks,
     embed_texts,
     init_faiss_index,
-    RagChunk,
 )
 
 DEFAULT_TOP_K = 2
@@ -120,25 +121,28 @@ def search():
     payload = request.get_json()
     if not payload or 'question' not in payload:
         return jsonify({'error': 'Missing question'}), 400
+    try:
+        question = str(payload.get('question', '')).strip()
+        top_k = int(payload.get('top_k', DEFAULT_TOP_K))
+        top_k = max(1, min(top_k, DEFAULT_TOP_K))
 
-    question = str(payload.get('question', '')).strip()
-    top_k = int(payload.get('top_k', DEFAULT_TOP_K))
-    top_k = max(1, min(top_k, DEFAULT_TOP_K))
+        chunks = search_chunks(question, top_k)
+        answer = answer_with_context(question, chunks)
+        chunk_titles = [chunk.title for chunk in chunks]
+        chunk_texts = [chunk.text for chunk in chunks]
 
-    chunks = search_chunks(question, top_k)
-    answer = answer_with_context(question, chunks)
-    chunk_titles = [chunk.title for chunk in chunks]
-    chunk_texts = [chunk.text for chunk in chunks]
-
-    return jsonify(
-        {
-            'answer': answer,
-            'chunk_title_list': chunk_titles,
-            'chunk_texts': chunk_texts,
-            'question': question,
-            'top_k': top_k,
-        }
-    )
+        return jsonify(
+            {
+                'answer': answer,
+                'chunk_title_list': chunk_titles,
+                'chunk_texts': chunk_texts,
+                'question': question,
+                'top_k': top_k,
+            }
+        )
+    except Exception as ex:
+        print(f'RAG search error: {ex}')
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/health', methods=['GET'])

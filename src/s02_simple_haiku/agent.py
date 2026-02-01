@@ -3,6 +3,7 @@
 import json
 
 from src import config
+
 from .haiku import generate_haiku
 from .rag import answer_question
 
