@@ -3,11 +3,8 @@
 import json
 
 from src import config
-from src.s02_simple_haiku.haiku.tool_haiku import (
-    count_syllables_via_tool,
-    generate_haiku,
-)
-from src.s02_simple_haiku.rag.tool_rag import answer_question
+from .haiku import generate_haiku
+from .rag import answer_question
 
 if config.insigma:
     from src.utils import post_chat_completions

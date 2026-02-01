@@ -37,6 +37,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 env_files = ".env"
+filterwarnings = [
+    "ignore:builtin type .{,15} has no __module__ attribute:DeprecationWarning",
+]
 markers = [
     "integration: test multiple components interaction",
     "unit: test single components (fast, with mocks)",
