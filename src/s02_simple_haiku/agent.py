@@ -369,7 +369,8 @@ def main():
 
         if tool_name == 'rag_search':
             question = str(tool_args.get('question', '')).strip()
-            answer = answer_question(question)
+            response = answer_question(question)
+            answer = response.get('answer', '')
             print(f'\n{answer}\n')
             continue
 

@@ -25,6 +25,8 @@ class Config:
         self.openrouter_key = os.getenv('OPENROUTER_API_KEY')
         self.model = os.getenv('MODEL', 'openai/gpt-3.5-turbo')
 
+        self.freezing = 1e-3
+
         self.validate()
 
     def _parse_bool(self, value: str | None, default: bool) -> bool:
