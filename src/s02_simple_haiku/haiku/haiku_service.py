@@ -46,7 +46,17 @@ def generate_haiku(topic: str, **kwargs) -> str:
         print(f'LLM Error: {response["error"]}')
         return ''
 
-    haiku = response['choices'][0]['message']['content'].strip()
+    try:
+        content = response['choices'][0]['message']['content']
+    except (KeyError, IndexError) as exc:
+        print(f'LLM Missing expected key/index ({exc}): {response}')
+        return ''
+
+    if not isinstance(content, str) or not content.strip():
+        print(f'LLM Missing content in response: {response}')
+        return ''
+
+    haiku = content.strip()
     return haiku
 
 

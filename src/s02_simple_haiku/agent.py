@@ -204,7 +204,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_input},
         ],
-        'funcitons': tools,
+        'functions': tools,
         'temperature': config.freezing,
     }
     if config.insigma:
@@ -223,13 +223,20 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
     if function_call:
         name = function_call.get('name')
         arguments = function_call.get('arguments', '{}')
+
         if name not in allowed_tool_names:
             print(
                 '[select_tool_call] LLM вернул неизвестный инструмент: {}'.format(name)
             )
             return None
+
         if isinstance(arguments, str):
-            arguments = json.loads(arguments)
+            try:
+                arguments = json.loads(arguments)
+            except json.JSONDecodeError as exc:
+                print(f'[select_tool_call] Некорректные аргументы: {exc}')
+                return None
+
         return name, arguments
 
     print('[select_tool_call] LLM не выбрал инструмент')

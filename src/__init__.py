@@ -1,7 +1,5 @@
 from .config import config
 
-###
-
 if config.insigma:
     from src.utils import post_chat_completions, post_embeddings
 else:
