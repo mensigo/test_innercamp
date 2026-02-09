@@ -2,21 +2,14 @@
 
 import json
 
-from src import config
+from src import config, post_chat_completions
 
 from .haiku import generate_haiku
 from .rag import answer_question
 
-if config.insigma:
-    from src.utils import post_chat_completions
-else:
-    from src.utils_openai import post_chat_completions
-
-
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
 
-freezing = 1e-3
 verbose = False
 
 
@@ -127,7 +120,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
                         'description': 'Вопрос пользователя о японской поэзии',
                     },
                 },
-                'required': ['question'],
+                # 'required': ['question'],
             },
             'few_shot_examples': [
                 {
@@ -148,6 +141,11 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
                         'items': {'type': 'string'},
                         'description': 'Заголовки статей, например ["Японская поэзия", "Старояпонский язык", "Кайфусо"]',
                     },
+                    'chunk_texts': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Тексты найденных фрагментов из источников',
+                    },
                 }
             },
         },
@@ -162,7 +160,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
                         'description': 'Тема хайку одним-двумя словами',
                     },
                 },
-                'required': ['theme'],
+                # 'required': ['theme'],
             },
             'few_shot_examples': [
                 {
@@ -172,17 +170,22 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
             ],
             'return_parameters': {
                 'properties': {
-                    'haiku': {
+                    'haiku_text': {
                         'type': 'string',
                         'description': 'Сгенерированное хайку на заданную тему',
                     },
-                    'format': {
-                        'type': 'string',
-                        'description': 'Число слогов в получившемся хайку (например, "7-5-7")',
+                    'syllables_per_line': {
+                        'type': 'array',
+                        'items': {'type': 'integer'},
+                        'description': 'Количество слогов по строкам',
                     },
-                    'iterations': {
+                    'total_words': {
                         'type': 'integer',
-                        'description': 'Число генераций, например 1',
+                        'description': 'Общее число слов в хайку',
+                    },
+                    'error': {
+                        'type': 'string',
+                        'description': 'Описание ошибки, если генерация не удалась',
                     },
                 }
             },
@@ -193,27 +196,19 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
         for t in tools_giga
     ]
     tools = tools_giga if config.insigma else tools_openai
+    allowed_tool_names = {tool['name'] for tool in tools}
 
     # payload
+    payload = {
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            {'role': 'user', 'content': user_input},
+        ],
+        'funcitons': tools,
+        'temperature': config.freezing,
+    }
     if config.insigma:
-        payload = {
-            'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_input},
-            ],
-            'funcitons': tools,
-            'function_call': 'auto',
-            'temperature': freezing,
-        }
-    else:
-        payload = {
-            'messages': [
-                {'role': 'system', 'content': system_prompt},
-                {'role': 'user', 'content': user_input},
-            ],
-            'functions': tools,
-            'temperature': freezing,
-        }
+        payload['function_call'] = 'auto'
 
     # request
     response = post_chat_completions(payload, verbose)
@@ -228,6 +223,11 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
     if function_call:
         name = function_call.get('name')
         arguments = function_call.get('arguments', '{}')
+        if name not in allowed_tool_names:
+            print(
+                '[select_tool_call] LLM вернул неизвестный инструмент: {}'.format(name)
+            )
+            return None
         if isinstance(arguments, str):
             arguments = json.loads(arguments)
         return name, arguments
@@ -319,7 +319,8 @@ def display_haiku(haiku: str, stats: dict | None):
             else:
                 print(line.strip())
 
-        print(f'\nВсего слогов: {stats.get("total_syllables", "?")}')
+        total_syllables = sum(syllable_counts) if syllable_counts else 0
+        print(f'\nВсего слогов: {total_syllables}')
         print(f'Всего слов: {stats.get("total_words", "?")}')
     else:
         for line in lines:
@@ -375,14 +376,18 @@ def main():
         if tool_name == 'generate_haiku':
             theme = str(tool_args.get('theme', '')).strip()
             print(f'[Тема: {theme}]')
-            haiku = generate_haiku(theme)
+            result = generate_haiku(theme)
 
-            if not haiku:
+            if 'error' in result and result['error']:
+                print(f'Ошибка при генерации хайку: {result["error"]}\n')
+                continue
+
+            haiku_text = result.get('haiku_text', '')
+            if not haiku_text:
                 print('Ошибка при генерации хайку.\n')
                 continue
 
-            stats = count_syllables_via_tool(haiku)
-            display_haiku(haiku, stats)
+            display_haiku(haiku_text, result)
             continue
 
         print('Не удалось выполнить инструмент.\n')

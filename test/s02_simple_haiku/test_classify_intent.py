@@ -2,9 +2,8 @@
 
 import pytest
 
+from src import config
 from src.s02_simple_haiku.agent import classify_intent
-
-freezing = 0.001
 
 
 @pytest.mark.llm
@@ -21,7 +20,7 @@ class TestClassifyIntentIntegration:
             'сгенери хоку',
         ]
         for case in cases:
-            result = classify_intent(case, temperature=freezing)
+            result = classify_intent(case, temperature=config.freezing)
             assert result, f'Failed for: {case}'
 
     def test_ok_rag(self):
@@ -32,7 +31,7 @@ class TestClassifyIntentIntegration:
             'японская поэзия',
         ]
         for case in cases:
-            result = classify_intent(case, temperature=freezing)
+            result = classify_intent(case, temperature=config.freezing)
             assert result, f'Failed for: {case}'
 
     def test_deny_other(self):
@@ -47,22 +46,22 @@ class TestClassifyIntentIntegration:
             'whats the meaning of hive?',
         ]
         for case in cases:
-            result = classify_intent(case, temperature=freezing)
+            result = classify_intent(case, temperature=config.freezing)
             assert not result, f'Failed for: {case}'
 
     def test_edge_cases(self):
         """Edge cases."""
         # Very short request
         user_input = 'хайку'
-        result = classify_intent(user_input, temperature=freezing)
+        result = classify_intent(user_input, temperature=config.freezing)
         assert result, f'Failed for: {user_input}'
 
         # Mixed language
         user_input = 'write me a haiku'
-        result = classify_intent(user_input, temperature=freezing)
+        result = classify_intent(user_input, temperature=config.freezing)
         assert result, f'Failed for: {user_input}'
 
         # TODO: Ask for details
         user_input = 'напиши стишок'
-        result = classify_intent(user_input, temperature=freezing)
+        result = classify_intent(user_input, temperature=config.freezing)
         assert not result, f'Failed for: {user_input}'

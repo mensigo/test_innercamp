@@ -3,6 +3,7 @@
 from flask import Flask, jsonify, request
 
 from src import config, post_chat_completions
+
 from .split_word import split_into_syllables_simple
 
 app = Flask(__name__)
