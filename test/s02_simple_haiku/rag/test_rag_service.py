@@ -15,9 +15,10 @@ class FakeIndex:
     def __init__(self, indices: list[int]):
         self.indices = indices
 
-    def search(self, _vectors: np.ndarray, top_k: int):
+    def search(self, _vectors: np.ndarray, top_k: int) -> tuple[np.ndarray, np.ndarray]:
         idx = self.indices[:top_k]
-        return None, np.array([idx], dtype='int64')
+        distances = np.zeros((1, len(idx)), dtype='float32')
+        return distances, np.array([idx], dtype='int64')
 
 
 def load_rag_service(monkeypatch: pytest.MonkeyPatch) -> ModuleType:

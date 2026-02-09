@@ -1,6 +1,7 @@
 """Smoke tests for rag_utils helpers."""
 
 import pytest
+import requests
 
 from src.s02_simple_haiku.rag import rag_utils as ru
 
@@ -19,7 +20,7 @@ class FakeResponse:
 
     def raise_for_status(self):
         if self.status_code >= 400:
-            raise RuntimeError('bad status')
+            raise requests.HTTPError(f'HTTP Error: {self.status_code}')
 
 
 def test_check_health_true(monkeypatch: pytest.MonkeyPatch):
