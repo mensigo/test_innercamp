@@ -22,6 +22,8 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     headers = {
         'Authorization': f'Bearer {config.openrouter_key}',
         'Content-Type': 'application/json',
+        'HTTP-Referer': config.openrouter_referer,
+        'X-Title': config.openrouter_title,
     }
 
     try:
@@ -32,8 +34,11 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
             print('ans:', response, response.text)
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+    except requests.exceptions.HTTPError as exc:
+        text = exc.response.text if exc.response is not None else ''
+        return {'error': f'{exc} {text}'.strip()}
+    except requests.exceptions.RequestException as exc:
+        return {'error': str(exc)}
 
 
 def post_embeddings(payload: dict) -> dict:
@@ -48,11 +53,16 @@ def post_embeddings(payload: dict) -> dict:
     headers = {
         'Authorization': f'Bearer {config.openrouter_key}',
         'Content-Type': 'application/json',
+        'HTTP-Referer': config.openrouter_referer,
+        'X-Title': config.openrouter_title,
     }
 
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+    except requests.exceptions.HTTPError as exc:
+        text = exc.response.text if exc.response is not None else ''
+        return {'error': f'{exc} {text}'.strip()}
+    except requests.exceptions.RequestException as exc:
+        return {'error': str(exc)}

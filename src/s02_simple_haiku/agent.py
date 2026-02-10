@@ -10,7 +10,7 @@ from .rag import answer_question
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
 
-verbose = False
+verbose = True
 
 
 def print_help():
@@ -67,7 +67,7 @@ def classify_intent(user_input: str, **kwargs) -> bool:
         'max_tokens': 1,
     }
 
-    response = post_chat_completions(payload)
+    response = post_chat_completions(payload, verbose=verbose)
 
     if 'error' in response:
         print('[classify_intent] LLM Error: {}'.format(response['error']))
@@ -92,19 +92,36 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
     # system
     system_prompt = """Ты определяешь, какой инструмент вызвать.
 Если пользователь спрашивает о японской поэзии, вызови rag_search.
-Если пользователь просит сгенерировать хайку/хокку, вызови generate_haiku.
-Вызывай ровно один инструмент."""
+Если пользователь просит сгенерировать хайку/хокку (даже без указания темы), вызови generate_haiku.
+Вызывай ровно один инструмент.
+
+ВАЖНО:
+- Если тема хайку не указана, все равно вызывай generate_haiku({}).
+- Если это вопрос о японской поэзии, перефразируй его в более формальный вид (это и будет question).
+"""
 
     if not config.insigma:
         system_prompt += """
 
-Примеры взаимодействия (generate_haiku):
+## Примеры взаимодействия (generate_haiku):
+
 Пользователь: Создай хайку о зимнем утре
 Ты: generate_haiku({"theme": "Зимнее утро"})
 
-Примеры взаимодействия (rag_search):
+Пользователь: Просто хайку
+Ты: generate_haiku({})
+
+Пользователь: пиши хокку мне
+Ты: generate_haiku({})
+
+
+## Примеры взаимодействия (rag_search):
+
 Пользователь: Когда был написан манъесю
 Ты: rag_search({"question": "Дата написания Манъёсю"})
+
+Пользователь: Есть ли в старояпонском священные цифры?
+Ты: rag_search({"question": "Священные цифры в старояпонском языке"})
 """
 
     # tool desctiption
@@ -120,14 +137,12 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
                         'description': 'Вопрос пользователя о японской поэзии',
                     },
                 },
-                # 'required': ['question'],
+                'required': [],
             },
             'few_shot_examples': [
                 {
                     'request': 'Есть ли в старояпонском священные цифры?',
-                    'params': {
-                        'question': 'Старояпонский цифры в старояпонском языке?'
-                    },
+                    'params': {'question': 'Священные цифры в старояпонском языке?'},
                 }
             ],
             'return_parameters': {
@@ -160,7 +175,7 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
                         'description': 'Тема хайку одним-двумя словами',
                     },
                 },
-                # 'required': ['theme'],
+                'required': [],
             },
             'few_shot_examples': [
                 {
@@ -192,11 +207,18 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
         },
     ]
     tools_openai = [
-        {k: v for k, v in t.items() if k in ('name', 'description', 'parameters')}
+        dict(
+            type='function',
+            function={
+                k: v for k, v in t.items() if k in ('name', 'description', 'parameters')
+            },
+        )
         for t in tools_giga
     ]
     tools = tools_giga if config.insigma else tools_openai
-    allowed_tool_names = {tool['name'] for tool in tools}
+    allowed_tool_names = {
+        tool.get('name') or tool['function']['name'] for tool in tools
+    }
 
     # payload
     payload = {
@@ -204,11 +226,13 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
             {'role': 'system', 'content': system_prompt},
             {'role': 'user', 'content': user_input},
         ],
-        'functions': tools,
+        'tools': tools,
         'temperature': config.freezing,
     }
     if config.insigma:
-        payload['function_call'] = 'auto'
+        payload['function_call'] = None  # 'auto'
+        payload['functions'] = tools
+        del payload['tools']
 
     # request
     response = post_chat_completions(payload, verbose)
@@ -218,25 +242,18 @@ def select_tool_call(user_input: str) -> tuple[str, dict] | None:
 
     # handle response
     message = response['choices'][0]['message']
-    function_call = message.get('function_call')
 
+    function_call = message.get('function_call')
     if function_call:
         name = function_call.get('name')
-        arguments = function_call.get('arguments', '{}')
+        arguments = json.loads(function_call.get('arguments', '{}'))
+        return name, arguments
 
-        if name not in allowed_tool_names:
-            print(
-                '[select_tool_call] LLM вернул неизвестный инструмент: {}'.format(name)
-            )
-            return None
-
-        if isinstance(arguments, str):
-            try:
-                arguments = json.loads(arguments)
-            except json.JSONDecodeError as exc:
-                print(f'[select_tool_call] Некорректные аргументы: {exc}')
-                return None
-
+    tool_calls = message.get('tool_calls')
+    if tool_calls:
+        tool_call = tool_calls[0]
+        name = tool_call['function'].get('name')
+        arguments = json.loads(tool_call['function'].get('arguments', '{}'))
         return name, arguments
 
     print('[select_tool_call] LLM не выбрал инструмент')
