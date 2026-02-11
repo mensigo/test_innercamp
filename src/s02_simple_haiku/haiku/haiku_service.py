@@ -40,7 +40,7 @@ def generate_haiku(topic: str, **kwargs) -> str:
         'temperature': kwargs.get('temperature', 0.5),
     }
 
-    response = post_chat_completions(payload)
+    response = post_chat_completions(payload, kwargs.get('verbose', False))
 
     if 'error' in response:
         print(f'LLM Error: {response["error"]}')
@@ -48,8 +48,8 @@ def generate_haiku(topic: str, **kwargs) -> str:
 
     try:
         content = response['choices'][0]['message']['content']
-    except (KeyError, IndexError) as exc:
-        print(f'LLM Missing expected key/index ({exc}): {response}')
+    except Exception as ex:
+        print(f'LLM Missing expected key/index ({ex}): {response}')
         return ''
 
     if not isinstance(content, str) or not content.strip():

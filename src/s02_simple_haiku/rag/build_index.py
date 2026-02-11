@@ -1,5 +1,6 @@
 """FAISS index build and persistence helpers."""
 
+import hashlib
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -13,6 +14,19 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data'
 INDEX_PATH = BASE_DIR / 'faiss.index'
 DEFAULT_MAX_CHUNK_CHARS = 800
+
+
+def _hash_path() -> Path:
+    """Path to stored texts hash (derived from INDEX_PATH for testability)."""
+    return INDEX_PATH.parent / (INDEX_PATH.stem + '.hash')
+
+
+def compute_texts_hash(texts: list[str]) -> str:
+    """
+    Compute SHA256 hash of texts for index consistency validation.
+    """
+    content = '\n'.join(texts)
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()
 
 
 @dataclass
@@ -56,13 +70,17 @@ def chunk_text(text: str, max_chunk_chars: int) -> list[str]:
             if current:
                 chunks.append(current.strip())
                 current = ''
-            start = 0
-            while start < len(sentence):
-                end = start + max_chunk_chars
-                chunk = sentence[start:end].strip()
-                if chunk:
-                    chunks.append(chunk)
-                start = end
+            words = sentence.split()
+            temp = ''
+            for word in words:
+                if len(temp) + len(word) + 1 > max_chunk_chars:
+                    if temp:
+                        chunks.append(temp.strip())
+                    temp = word
+                else:
+                    temp = f'{temp} {word}' if temp else word
+            if temp:
+                chunks.append(temp.strip())
             continue
 
         if not current:
@@ -210,23 +228,55 @@ def save_faiss_index(index: faiss.Index):
         print(f'RAG: не удалось сохранить индекс: {ex}')
 
 
+def load_index_hash() -> str | None:
+    """
+    Load stored texts hash if available.
+    """
+    path = _hash_path()
+    if not path.exists():
+        return None
+    try:
+        return path.read_text(encoding='utf-8').strip()
+    except Exception:
+        return None
+
+
+def save_index_hash(hash_str: str):
+    """
+    Save texts hash for index consistency validation.
+    """
+    try:
+        _hash_path().write_text(hash_str, encoding='utf-8')
+    except Exception as ex:
+        print(f'RAG: не удалось сохранить хеш индекса: {ex}')
+
+
 def init_faiss_index(texts: list[str]) -> tuple[faiss.Index | None, int]:
     """
     Initialize FAISS index with load or rebuild.
+    Rebuilds when count or content hash of texts differs from saved index.
     """
     if not texts:
         return None, 0
 
+    texts_hash = compute_texts_hash(texts)
     index, dimension = load_faiss_index()
+
     if index is not None:
-        if index.ntotal != len(texts):
-            print('RAG: индекс не соответствует чанкам, пересоздание')
+        stored_hash = load_index_hash()
+        count_ok = index.ntotal == len(texts)
+        hash_ok = stored_hash == texts_hash
+        if not count_ok or not hash_ok:
+            reason = 'количество чанков' if not count_ok else 'содержимое чанков'
+            print(f'RAG: индекс не соответствует ({reason}), пересоздание')
             index, dimension = build_faiss_index(texts)
             if index is not None:
                 save_faiss_index(index)
+                save_index_hash(texts_hash)
     else:
         index, dimension = build_faiss_index(texts)
         if index is not None:
             save_faiss_index(index)
+            save_index_hash(texts_hash)
 
     return index, dimension

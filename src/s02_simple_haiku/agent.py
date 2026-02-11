@@ -1,11 +1,9 @@
 """CLI agent with intent classification and tool routing."""
 
-from src import config, post_chat_completions
-
 from .classify_intent import classify_intent
-from .select_tool_call import select_tool_call
 from .haiku import generate_haiku
 from .rag import answer_question
+from .select_tool_call import select_tool_call
 
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}

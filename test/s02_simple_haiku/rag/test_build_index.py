@@ -76,3 +76,39 @@ def test_build_and_init_faiss_index(tmp_path: Path, monkeypatch):
     assert index is not None
     assert dim == 3
     assert bi.INDEX_PATH.exists()
+
+
+def test_init_faiss_index_rebuilds_when_chunk_count_mismatch(
+    tmp_path: Path, monkeypatch
+):
+    """Index is rebuilt when index.ntotal != len(texts)."""
+    monkeypatch.setattr(bi, 'post_embeddings', fake_post_embeddings)
+    monkeypatch.setattr(bi, 'INDEX_PATH', tmp_path / 'faiss.index')
+
+    index_old, _ = bi.build_faiss_index(['a', 'b'])
+    bi.save_faiss_index(index_old)
+    bi.save_index_hash(bi.compute_texts_hash(['a', 'b']))
+    assert bi.INDEX_PATH.exists()
+
+    index, dim = bi.init_faiss_index(['a', 'b', 'c', 'd'])
+    assert index is not None
+    assert index.ntotal == 4
+    assert dim == 3
+
+
+def test_init_faiss_index_rebuilds_when_texts_content_changes(
+    tmp_path: Path, monkeypatch
+):
+    """Index is rebuilt when texts content changes but count stays the same."""
+    monkeypatch.setattr(bi, 'post_embeddings', fake_post_embeddings)
+    monkeypatch.setattr(bi, 'INDEX_PATH', tmp_path / 'faiss.index')
+
+    index_old, _ = bi.build_faiss_index(['a', 'b'])
+    bi.save_faiss_index(index_old)
+    bi.save_index_hash(bi.compute_texts_hash(['a', 'b']))
+
+    index, dim = bi.init_faiss_index(['a', 'x'])  # same count, different content
+    assert index is not None
+    assert index.ntotal == 2
+    assert dim == 3
+    assert bi.load_index_hash() == bi.compute_texts_hash(['a', 'x'])

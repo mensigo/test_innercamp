@@ -20,6 +20,7 @@ app = Flask(__name__)
 RAG_CHUNKS: list[RagChunk] = []
 RAG_INDEX = None
 RAG_DIM = 0
+_RAG_INITIALIZED = False
 
 
 def init_rag_index():
@@ -40,6 +41,21 @@ def init_rag_index():
         print('RAG: индекс не создан, проверьте доступ к embeddings')
     else:
         print(f'RAG: индекс создан, чанков={len(RAG_CHUNKS)}')
+
+
+def _ensure_rag_index():
+    """Lazy init: build index on first request."""
+    global _RAG_INITIALIZED
+    if _RAG_INITIALIZED or RAG_INDEX is not None:
+        return
+    _RAG_INITIALIZED = True
+    init_rag_index()
+
+
+@app.before_request
+def _before_request():
+    """Ensure RAG index is built before handling requests."""
+    _ensure_rag_index()
 
 
 def search_chunks(question: str, top_k: int) -> list[RagChunk]:
@@ -110,7 +126,7 @@ def answer_with_context(question: str, chunks: list[RagChunk]) -> str:
         return response['choices'][0]['message']['content'].strip()
     except (KeyError, IndexError) as ex:
         print(f'LLM Response Error: {ex}')
-        return 'Ошибка при обработке ответа LLM.'
+        raise Exception('Ошибка при обработке ответа LLM.') from ex
 
 
 @app.route('/search', methods=['POST'])
@@ -158,9 +174,6 @@ def health():
     }
     status_code = 200 if ready else 503
     return jsonify(payload), status_code
-
-
-init_rag_index()
 
 
 if __name__ == '__main__':
