@@ -4,7 +4,6 @@ import pytest
 
 from src.utils import get_models, post_chat_completions, post_embeddings
 
-
 INSIGMA = os.getenv('INSIGMA', 'false').lower() == 'true'
 pytestmark = pytest.mark.skipif(
     not INSIGMA, reason='Run Gigachat helpers only when INSIGMA is true'

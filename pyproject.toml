@@ -12,8 +12,8 @@ dependencies = [
     "requests>=2.32.5",
     "python-dotenv<1.0.0",
     "flask>=3.0.0",
-    "faiss-cpu>=1.0.0,<=1.13.2",
-    "numpy>=2.0.0,<=2.4.1",
+    "faiss-cpu>=1,<1.9",
+    "numpy>=1.20,<2",
 ]
 
 [dependency-groups]
@@ -37,9 +37,13 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 env_files = ".env"
+filterwarnings = [
+    "ignore:builtin type .{,15} has no __module__ attribute:DeprecationWarning",
+]
 markers = [
-    "integration: marks tests as integration tests (real API calls, slower)",
-    "unit: marks tests as unit tests (fast, with mocks)",
+    "integration: test multiple components interaction",
+    "unit: test single components (fast, with mocks)",
+    "llm: test api calls (check prompts)",
 ]
 
 [tool.ruff]

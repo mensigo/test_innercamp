@@ -1,0 +1,51 @@
+{
+    "model": "openai/gpt-3.5-turbo",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Какая погода в Москве и сколько будет 15 + 27?"
+      }
+    ],
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_current_weather",
+          "description": "Получить текущую погоду в указанном городе",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "Город и страна, например, 'Москва, Россия'"
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Единицы измерения температуры"
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      },
+      {
+        "type": "function",
+        "function": {
+          "name": "calculate",
+          "description": "Выполнить математические вычисления",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "expression": {
+                "type": "string",
+                "description": "Математическое выражение для вычисления"
+              }
+            },
+            "required": ["expression"]
+          }
+        }
+      }
+    ],
+    "tool_choice": "auto"
+  }

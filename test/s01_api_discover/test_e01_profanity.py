@@ -72,6 +72,7 @@ def _extract_finish_reason(result: dict) -> str:
     return result['choices'][0]['finish_reason']
 
 
+@pytest.mark.llm
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
 def test_profanity_flag_blocks_inappropriate_information(case: dict):
     """Ensure profanity filtering suppresses the expected answer."""
@@ -87,6 +88,7 @@ def test_profanity_flag_blocks_inappropriate_information(case: dict):
     assert _extract_text(response).lower() != case['expected_answer'].lower()
 
 
+@pytest.mark.llm
 @pytest.mark.parametrize('case', CASES, ids=[case['name'] for case in CASES])
 def test_no_profanity_flag_reveals_information(case: dict):
     """Ensure the unfiltered call returns the expected answer."""

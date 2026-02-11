@@ -1,3 +1,11 @@
+## utils
+
+Запросы на эндпоинты /chat/completions, /embeddings.
+
+## s01_api_discover
+
+Применение параметра profanity_check (gigachat).
+
 ## s02_simple_haiku
 
 Мини-агент с CLI для японской поэзии:
@@ -5,26 +13,13 @@
 - Ответы на вопросы о хайку/хокку через RAG (Flask + FAISS)
 - Генерация хайку по теме
 
-### Запуск сервисов
 
-1) Сервис подсчета слогов:
+## current state
 
-```bash
-python -m src.s02_simple_haiku.haiku.tool_count_service
-```
+Работает (есть тесты):
+- utils
+- s01_api_discover (profanity_check)
+- s02_simple_haiku (rag)
 
-2) RAG сервис:
-
-```bash
-python -m src.s02_simple_haiku.rag.rag_service
-```
-
-### Запуск агента
-
-```bash
-python -m src.s02_simple_haiku.agent
-```
-
-### Данные для RAG
-
-Markdown-файлы лежат в `src/s02_simple_haiku/rag/data/`.
+TODO:
+- s02_simple_haiku (haiku generation tool, agent)

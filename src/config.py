@@ -23,7 +23,13 @@ class Config:
 
         self.openrouter_base_url = os.getenv('OPENROUTER_BASE_URL')
         self.openrouter_key = os.getenv('OPENROUTER_API_KEY')
+        self.openrouter_referer = os.getenv(
+            'OPENROUTER_HTTP_REFERER', 'http://haiku.test.com'
+        )
+        self.openrouter_title = os.getenv('OPENROUTER_TITLE', 'Innercamp Haiku')
         self.model = os.getenv('MODEL', 'openai/gpt-3.5-turbo')
+
+        self.freezing = 1e-3
 
         self.validate()
 

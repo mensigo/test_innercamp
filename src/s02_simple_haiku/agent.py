@@ -1,22 +1,14 @@
 """CLI agent with intent classification and tool routing."""
 
-import json
-
-from src import config
-from src.s02_simple_haiku.haiku.tool_haiku import (
-    count_syllables_via_tool,
-    generate_haiku,
-)
-from src.s02_simple_haiku.rag.tool_rag import answer_question
-
-if config.insigma:
-    from src.utils import post_chat_completions
-else:
-    from src.utils_openai import post_chat_completions
-
+from .classify_intent import classify_intent
+from .haiku import generate_haiku
+from .rag import answer_question
+from .select_tool_call import select_tool_call
 
 EXIT_COMMANDS = {'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
+
+VERBOSE = True
 
 
 def print_help():
@@ -31,150 +23,21 @@ def print_help():
     print('Команда помощи: /help\n')
 
 
-def classify_intent(user_input: str, **kwargs) -> bool:
+def print_reminder():
     """
-    Classify if user request is about Japanese poetry or haiku generation.
+    Remind available capabilities.
     """
-    system_prompt = """Ты классификатор запросов.
-Определи, относится ли запрос к японской поэзии или генерации хайку.
-
-Примеры запросов ДЛЯ НАШЕГО АГЕНТА (отвечай "да"):
-- "напиши хайку о море"
-- "сгенерируй хокку"
-- "что такое хайку?"
-- "кто такие рюкюсцы?"
-- "сколько канси в Манъёсю?"
-
-Примеры запросов НЕ ДЛЯ НАШЕГО АГЕНТА (отвечай "нет"):
-- "напиши стишок"
-- "расскажи анекдот"
-- "погода завтра"
-- "что там с гренландией?"
-
-Отвечай ТОЛЬКО одним словом: "да" или "нет"."""
-
-    payload = {
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_input},
-        ],
-        'temperature': kwargs.get('temperature', 0.001),
-        'max_tokens': 1,
-    }
-
-    response = post_chat_completions(payload)
-
-    if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
-        return False
-
-    try:
-        content = response['choices'][0]['message']['content'].strip().lower()
-        return 'да' in content or 'yes' in content
-    except (KeyError, IndexError) as e:
-        print(f'LLM Response Error: {e}')
-        return False
-
-
-def select_tool_call(user_input: str) -> tuple[str, dict] | None:
-    """
-    Select tool via function calling for the given user input.
-    """
-    system_prompt = """Ты определяешь, какой инструмент вызвать.
-Если пользователь спрашивает о японской поэзии, вызови rag_search.
-Если пользователь просит сгенерировать хайку/хокку, вызови generate_haiku.
-Вызывай ровно один инструмент."""
-
-    tools = [
-        {
-            'type': 'function',
-            'function': {
-                'name': 'rag_search',
-                'description': 'Поиск ответа на вопрос о японской поэзии',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'question': {
-                            'type': 'string',
-                            'description': 'Вопрос пользователя о хайку/хокку',
-                        }
-                    },
-                    'required': ['question'],
-                },
-            },
-        },
-        {
-            'type': 'function',
-            'function': {
-                'name': 'generate_haiku',
-                'description': 'Генерация хайку по теме',
-                'parameters': {
-                    'type': 'object',
-                    'properties': {
-                        'theme': {
-                            'type': 'string',
-                            'description': 'Тема хайку одним-двумя словами',
-                        }
-                    },
-                    'required': ['theme'],
-                },
-            },
-        },
-    ]
-
-    payload = {
-        'messages': [
-            {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_input},
-        ],
-        'tools': tools,
-        'tool_choice': 'auto',
-        'temperature': 0.0,
-    }
-
-    response = post_chat_completions(payload)
-    if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
-        return None
-
-    try:
-        message = response['choices'][0]['message']
-    except (KeyError, IndexError) as e:
-        print(f'LLM Response Error: {e}')
-        return None
-
-    tool_calls = message.get('tool_calls', [])
-    if tool_calls:
-        tool_call = tool_calls[0]
-        function = tool_call.get('function', {})
-        name = function.get('name')
-        arguments = function.get('arguments', '{}')
-        try:
-            args = json.loads(arguments) if isinstance(arguments, str) else arguments
-        except json.JSONDecodeError:
-            args = {}
-        args = args if isinstance(args, dict) else {}
-        return name, args
-
-    function_call = message.get('function_call')
-    if function_call:
-        name = function_call.get('name')
-        arguments = function_call.get('arguments', '{}')
-        try:
-            args = json.loads(arguments) if isinstance(arguments, str) else arguments
-        except json.JSONDecodeError:
-            args = {}
-        args = args if isinstance(args, dict) else {}
-        return name, args
-
-    print('LLM не выбрал инструмент.')
-    return None
+    print('Не совсем понимаю запрос. Мои возможности:')
+    print('- отвечать на вопросы о хайку/хокку (RAG)')
+    print('- генерировать хайку по теме')
 
 
 def detect_theme_change(user_input: str) -> str | None:
     """
     Detect theme change intent and extract new theme if provided.
     """
+    print('[detect_theme_change] start')
+
     lowered = user_input.lower()
     triggers = [
         'сменить тему на ',
@@ -199,6 +62,8 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
     """
     Validate tool arguments before calling tool.
     """
+    print('[validate_tool_call] start')
+
     if tool_name == 'rag_search':
         question = str(tool_args.get('question', '')).strip()
         if not question:
@@ -213,7 +78,7 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
             if theme_change:
                 print(f'Тема изменена на: {theme_change}')
             else:
-                print('Укажи новую тему после команды смены темы.')
+                print('Укажите новую тему после команды смены темы.')
             print('Сформулируй запрос заново.\n')
             return False
 
@@ -221,13 +86,13 @@ def validate_tool_call(tool_name: str, tool_args: dict, user_input: str) -> bool
             print('Не удалось определить тему для хайку.')
             return False
 
-        if len(theme) > 60:
+        if len(theme) > 20:
             print('Тема слишком длинная. Сократи до 1-2 слов.')
             return False
 
         return True
 
-    print('Неизвестный инструмент.')
+    print('[validate_tool_call] Неизвестный инструмент.')
     return False
 
 
@@ -250,7 +115,8 @@ def display_haiku(haiku: str, stats: dict | None):
             else:
                 print(line.strip())
 
-        print(f'\nВсего слогов: {stats.get("total_syllables", "?")}')
+        total_syllables = sum(syllable_counts) if syllable_counts else 0
+        print(f'\nВсего слогов: {total_syllables}')
         print(f'Всего слов: {stats.get("total_words", "?")}')
     else:
         for line in lines:
@@ -268,6 +134,8 @@ def main():
     while True:
         user_input = input('Введите запрос: ').strip()
 
+        # TODO: check length (deny if too long)
+
         if not user_input:
             continue
 
@@ -280,13 +148,14 @@ def main():
             print_help()
             continue
 
-        if not classify_intent(user_input):
+        if not classify_intent(user_input, verbose=VERBOSE):
             print('CLF: не наш агент\n')
+            print_reminder()
             continue
 
-        tool_call = select_tool_call(user_input)
+        tool_call = select_tool_call(user_input, verbose=VERBOSE)
         if not tool_call:
-            print('Не удалось определить инструмент.\n')
+            print('SEL: Не удалось определить инструмент.\n')
             continue
 
         tool_name, tool_args = tool_call
@@ -295,21 +164,26 @@ def main():
 
         if tool_name == 'rag_search':
             question = str(tool_args.get('question', '')).strip()
-            answer = answer_question(question)
+            response = answer_question(question)
+            answer = response.get('answer', '')
             print(f'\n{answer}\n')
             continue
 
         if tool_name == 'generate_haiku':
             theme = str(tool_args.get('theme', '')).strip()
             print(f'[Тема: {theme}]')
-            haiku = generate_haiku(theme)
+            result = generate_haiku(theme)
 
-            if not haiku:
+            if 'error' in result and result['error']:
+                print(f'Ошибка при генерации хайку: {result["error"]}\n')
+                continue
+
+            haiku_text = result.get('haiku_text', '')
+            if not haiku_text:
                 print('Ошибка при генерации хайку.\n')
                 continue
 
-            stats = count_syllables_via_tool(haiku)
-            display_haiku(haiku, stats)
+            display_haiku(haiku_text, result)
             continue
 
         print('Не удалось выполнить инструмент.\n')
