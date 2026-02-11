@@ -1,14 +1,12 @@
-"""Integration tests for classify_intent with real LLM calls."""
-
 import pytest
 
 from src import config
-from src.s02_simple_haiku.agent import classify_intent
+from src.s02_simple_haiku.classify_intent import classify_intent
 
 
 @pytest.mark.llm
-class TestClassifyIntentIntegration:
-    """Integration tests with real LLM API calls."""
+class TestClassifyIntentRealLLM:
+    """Tests with real LLM API calls."""
 
     def test_ok_haiku(self):
         """Haiku generation requests."""
@@ -41,7 +39,8 @@ class TestClassifyIntentIntegration:
             'заказать выписку',
             'погода на завтра',
             'зеленый день когда',
-            'топ рестиков на балитекущая процентная ставка?',
+            'топ рестиков на бали',
+            'текущая процентная ставка?',
             'что лучше самокат или питбайк?',
             'whats the meaning of hive?',
         ]
