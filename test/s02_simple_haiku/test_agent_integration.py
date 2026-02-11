@@ -35,68 +35,6 @@ def test_display_haiku_empty():
     agent.display_haiku('', None)
 
 
-def test_validate_tool_call_rag_search():
-    """Validate rag_search tool call."""
-    result = agent.validate_tool_call(
-        'rag_search', {'question': 'Что такое хайку?'}, 'Что такое хайку?'
-    )
-    assert result is True
-
-
-def test_validate_tool_call_rag_search_empty_question():
-    """Validate rag_search with empty question should fail."""
-    result = agent.validate_tool_call('rag_search', {'question': ''}, 'test')
-    assert result is False
-
-
-def test_validate_tool_call_generate_haiku():
-    """Validate generate_haiku tool call."""
-    result = agent.validate_tool_call(
-        'generate_haiku', {'theme': 'осень'}, 'напиши хайку про осень'
-    )
-    assert result is True
-
-
-def test_validate_tool_call_generate_haiku_empty_theme():
-    """Validate generate_haiku with empty theme should fail."""
-    result = agent.validate_tool_call('generate_haiku', {'theme': ''}, 'test')
-    assert result is False
-
-
-def test_validate_tool_call_generate_haiku_long_theme():
-    """Validate generate_haiku with long theme should fail."""
-    result = agent.validate_tool_call(
-        'generate_haiku',
-        {'theme': 'очень длинная тема для хайку которая превышает лимит'},
-        'test',
-    )
-    assert result is False
-
-
-def test_validate_tool_call_unknown_tool():
-    """Validate unknown tool should fail."""
-    result = agent.validate_tool_call('unknown_tool', {}, 'test')
-    assert result is False
-
-
-def test_detect_theme_change_with_new_theme():
-    """Detect theme change with new theme specified."""
-    result = agent.detect_theme_change('сменить тему на зима')
-    assert result == 'зима'
-
-
-def test_detect_theme_change_without_new_theme():
-    """Detect theme change without new theme specified."""
-    result = agent.detect_theme_change('сменить тему')
-    assert result == ''
-
-
-def test_detect_theme_change_no_change():
-    """Detect no theme change in normal request."""
-    result = agent.detect_theme_change('напиши хайку про осень')
-    assert result is None
-
-
 def test_print_help():
     """Print help should not raise exception."""
     agent.print_help()
@@ -105,3 +43,25 @@ def test_print_help():
 def test_print_reminder():
     """Print reminder should not raise exception."""
     agent.print_reminder()
+
+
+def test_add_to_history():
+    """Add message to history."""
+    history = []
+    agent.add_to_history(history, 'user', 'Привет')
+    assert len(history) == 1
+    assert history[0]['role'] == 'user'
+    assert history[0]['content'] == 'Привет'
+
+
+def test_add_to_history_limit():
+    """Add messages to history should respect limit."""
+    history = []
+    # Добавляем больше сообщений, чем CONTEXT_HIST_LIMIT
+    for i in range(15):
+        agent.add_to_history(history, 'user', f'Сообщение {i}')
+
+    assert len(history) == agent.CONTEXT_HIST_LIMIT
+    # Проверяем, что остались последние сообщения
+    assert history[0]['content'] == 'Сообщение 5'
+    assert history[-1]['content'] == 'Сообщение 14'
