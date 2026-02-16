@@ -9,11 +9,13 @@ from .haiku import generate_haiku
 from .rag import answer_question
 from .select_tool_call import select_tool_call
 from .validate_tool_call import validate_tool_call
+from ..config import config
+from ..logger import logger
 
-EXIT_COMMANDS = {'exit', 'quit', 'q'}
+EXIT_COMMANDS = {'/exit', '/quit', '/q', 'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
 
-VERBOSE = True
+VERBOSE = config.debug
 CONTEXT_HIST_LIMIT = 10
 MAX_CLARIFICATION_RETRIES = 3
 
@@ -22,21 +24,15 @@ def print_help():
     """
     Print greeting and available capabilities.
     """
-    print('[print_help | info] === Мини-агент по японской поэзии ===')
-    print('[print_help | info] Могу:')
-    print('[print_help | info] - отвечать на вопросы о хайку/хокку (RAG)')
-    print('[print_help | info] - генерировать хайку по теме')
-    print('[print_help | info] Для выхода введите: exit, quit или q')
-    print('[print_help | info] Команда помощи: /help\n')
-
-
-def print_reminder():
-    """
-    Remind available capabilities.
-    """
-    print('[print_reminder | info] Не совсем понимаю запрос. Мои возможности:')
-    print('[print_reminder | info] - отвечать на вопросы о хайку/хокку (RAG)')
-    print('[print_reminder | info] - генерировать хайку по теме')
+    logger.info("""
+    === Мини-агент по японской поэзии ===
+    Могу:
+    - отвечать на вопросы о хайку/хокку
+    - генерировать хайку по теме
+    
+    Для выхода введите: /exit, /quit или /q
+    Команда справки: /help
+    """)
 
 
 def add_to_history(history: list[dict], role: str, content: str):
@@ -89,16 +85,15 @@ def main():
     pending_clarification: dict | None = None
 
     while True:
+        logger.debug({'state': 'AgentStart'})
         user_input = input('Введите запрос: ').strip()
-
-        # TODO: check length (deny if too long)
 
         if not user_input:
             continue
 
         lowered = user_input.lower()
         if lowered in EXIT_COMMANDS:
-            print('[main | exit] До свидания!')
+            logger.info('[main] До свидания!')
             break
 
         if lowered in HELP_COMMANDS:
@@ -179,12 +174,31 @@ def main():
 
         # Обычный flow: classify -> select -> validate -> execute
 
-        if not classify_intent(user_input, verbose=VERBOSE):
-            response = 'CLF: не наш агент'
-            print(f'[main | classify_intent] {response}\n')
-            add_to_history(message_history, 'assistant', response)
-            print_reminder()
+        # classify
+
+        logger.info('Анализирую релевантность запроса..')
+        logger.debug({'state': 'AgentClassify'})
+
+        clf_result = classify_intent(message_history, verbose=VERBOSE)
+
+        if clf_result == 2:
+            clf_message = 'Ошибка при запросе LLM, завершаюсь..'
+            logger.info(f'[cls] {clf_message}\n')
+            break
+
+        if clf_result == 1:
+            clf_message = 'Запрос не связан с функционалом агента.'
+            logger.info(f'[cls] {clf_message}\n')
+            print_help()
+            add_to_history(message_history, 'assistant', clf_message)
             continue
+
+        if clf_result == 0:
+            clf_message = 'Запрос релевантен, думаю..'
+            logger.info(f'[cls] {clf_message}\n')
+            add_to_history(message_history, 'assistant', clf_message)
+
+        # select
 
         tool_call = select_tool_call(user_input, verbose=VERBOSE)
         if not tool_call:

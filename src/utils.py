@@ -2,7 +2,7 @@
 
 import requests
 
-from src import config
+from src import config, logger
 
 DEFAULT_CHAT_MODEL = 'GigaChat-2-Max'
 DEFAULT_EMBEDDINGS_MODEL = 'Embeddings'
@@ -14,11 +14,14 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     Sends POST request to /chat/completions endpoint.
     """
     url = f'{config.gigachat_base_url}/chat/completions'
+
     if 'model' not in payload:
         payload['model'] = DEFAULT_CHAT_MODEL
+
     try:
         if verbose:
-            print('req:', payload)
+            logger.debug('post/req: {}', payload)
+
         response = requests.post(
             url,
             json=payload,
@@ -26,23 +29,37 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
             verify=config.gigachat_chain_path,
             timeout=30,
         )
+
         if verbose:
-            print('ans:', response, response.text)
+            logger.debug('post/ans: {} | {}', response, response.text)
+
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+
+    except requests.exceptions.HTTPError as ex:
+        logger.exception('post/error: {}', ex)
+        text = ex.response.text if ex.response is not None else ''
+        return {'error': f'{ex} {text}'.strip()}
+
+    except requests.exceptions.RequestException as ex:
+        logger.exception('post/error: {}', ex)
+        return {'error': str(ex)}
 
 
-def post_embeddings(payload: dict) -> dict:
+def post_embeddings(payload: dict, verbose: bool = False) -> dict:
     """
     Create vector embeddings for text.
     Sends POST request to /embeddings endpoint.
     """
     url = f'{config.gigachat_base_url}/embeddings'
+
     if 'model' not in payload:
         payload['model'] = DEFAULT_EMBEDDINGS_MODEL
+
     try:
+        if verbose:
+            logger.debug('post/req: {}', payload)
+
         response = requests.post(
             url,
             json=payload,
@@ -50,10 +67,21 @@ def post_embeddings(payload: dict) -> dict:
             verify=config.gigachat_chain_path,
             timeout=30,
         )
+
+        if verbose:
+            logger.debug('post/ans: {} | {}', response, response.text[:500])
+
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+
+    except requests.exceptions.HTTPError as ex:
+        logger.exception('post/error: {}', ex)
+        text = ex.response.text if ex.response is not None else ''
+        return {'error': f'{ex} {text}'.strip()}
+
+    except requests.exceptions.RequestException as ex:
+        logger.exception('post/error: {}', ex)
+        return {'error': str(ex)}
 
 
 def get_models() -> dict:

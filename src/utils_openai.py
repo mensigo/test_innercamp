@@ -2,7 +2,7 @@
 
 import requests
 
-from src import config
+from src import config, logger
 
 DEFAULT_MODEL = 'openai/gpt-3.5-turbo'
 DEFAULT_EMBEDDING_MODEL = 'openai/text-embedding-3-small'
@@ -15,7 +15,6 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     """
     url = f'{config.openrouter_base_url}/chat/completions'
 
-    # Set default model if not provided in payload
     if 'model' not in payload:
         payload['model'] = DEFAULT_MODEL
 
@@ -28,25 +27,33 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
 
     try:
         if verbose:
-            print('req:', payload)
+            logger.debug('post/req: {}', payload)
+
         response = requests.post(url, json=payload, headers=headers, timeout=30)
+
         if verbose:
-            print('ans:', response, response.text)
+            logger.debug('post/ans: {} | {}', response, response.text)
+
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.HTTPError as exc:
-        text = exc.response.text if exc.response is not None else ''
-        return {'error': f'{exc} {text}'.strip()}
-    except requests.exceptions.RequestException as exc:
-        return {'error': str(exc)}
+
+    except requests.exceptions.HTTPError as ex:
+        logger.exception('post/error: {}', ex)
+        text = ex.response.text if ex.response is not None else ''
+        return {'error': f'{ex} {text}'.strip()}
+
+    except requests.exceptions.RequestException as ex:
+        logger.exception('post/error: {}', ex)
+        return {'error': str(ex)}
 
 
-def post_embeddings(payload: dict) -> dict:
+def post_embeddings(payload: dict, verbose: bool = False) -> dict:
     """
     Send embeddings request to OpenRouter.
     Uses text-embedding-3-small model by default.
     """
     url = f'{config.openrouter_base_url}/embeddings'
+
     if 'model' not in payload:
         payload['model'] = DEFAULT_EMBEDDING_MODEL
 
@@ -58,11 +65,22 @@ def post_embeddings(payload: dict) -> dict:
     }
 
     try:
+        if verbose:
+            logger.debug('post/req: {}', payload)
+
         response = requests.post(url, json=payload, headers=headers, timeout=30)
+
+        if verbose:
+            logger.debug('post/ans: {} | {}', response, response.text[:500])
+
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.HTTPError as exc:
-        text = exc.response.text if exc.response is not None else ''
-        return {'error': f'{exc} {text}'.strip()}
-    except requests.exceptions.RequestException as exc:
-        return {'error': str(exc)}
+
+    except requests.exceptions.HTTPError as ex:
+        logger.exception('post/error: {}', ex)
+        text = ex.response.text if ex.response is not None else ''
+        return {'error': f'{ex} {text}'.strip()}
+
+    except requests.exceptions.RequestException as ex:
+        logger.exception('post/error: {}', ex)
+        return {'error': str(ex)}
