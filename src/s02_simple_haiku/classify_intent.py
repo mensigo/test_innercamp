@@ -1,12 +1,15 @@
-from src import config, post_chat_completions
+from src import config, logger, post_chat_completions
 
 
-def classify_intent(user_input: str, **kwargs) -> bool:
+def classify_intent(message_history: list[dict], **kwargs) -> int:
     """
     Classify if user request is about Japanese poetry or haiku generation.
+    Returns:
+        0 - relevant request
+        1 - irrelevant request
+        2 - request error
+        3 - parsing error
     """
-    print('[classify_intent] start')
-
     system_prompt = """Ты классификатор запросов.
 Определи, относится ли запрос к японской поэзии или генерации хайку.
 
@@ -28,7 +31,7 @@ def classify_intent(user_input: str, **kwargs) -> bool:
     payload = {
         'messages': [
             {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_input},
+            *message_history,
         ],
         'temperature': kwargs.get('temperature', config.freezing),
         'max_tokens': 1,
@@ -37,13 +40,13 @@ def classify_intent(user_input: str, **kwargs) -> bool:
     response = post_chat_completions(payload, verbose=kwargs.get('verbose', False))
 
     if 'error' in response:
-        print('[classify_intent] LLM Error: {}'.format(response['error']))
-        return False
+        logger.critical('classify_intent // LLM Error: {}'.format(response['error']))
+        return 2
 
     try:
         content = response['choices'][0]['message']['content'].strip().lower()
-        return 'да' in content or 'yes' in content
+        return 0 if ('да' in content or 'yes' in content) else 1
 
-    except (KeyError, IndexError) as e:
-        print(f'[classify_intent] LLM Response Error: {e}')
-        return False
+    except (KeyError, IndexError) as ex:
+        logger.exception(f'classify_intent // LLM Response Parse Error: {ex}')
+        return 3

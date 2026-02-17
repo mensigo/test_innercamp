@@ -1,20 +1,25 @@
 import json
 
-from src import config, post_chat_completions
+from src import config, logger, post_chat_completions
 
 
-def select_tool_call(user_input: str, **kwargs) -> tuple[str, dict] | None:
+def select_tool_call(
+    message_history: list[dict], **kwargs
+) -> tuple[int, tuple[str, dict] | None]:
     """
     Select tool via function calling for the given user input.
-    Return name,args if succeeded, None otherwise.
+    Returns:
+        0,(name,args) - tool selected
+        1,None - no tool selected
+        2,None - request error
+        3,None - parsing error
     """
-    print('[select_tool_call] start')
+    system_prompt = """
+Твоя задача - определить, какой инструмент (tool) нужно вызвать в ответ на запрос пользователя.
 
-    # [ system ]
-
-    system_prompt = """Ты определяешь, какой инструмент вызвать.
-Если пользователь спрашивает о японской поэзии, вызови rag_search.
-Если пользователь просит сгенерировать хайку/хокку (даже без указания темы), вызови generate_haiku.
+Перед тобой диалог с пользователем. Определи последний запрос (intent) пользователя, затем подумай:
+- если пользователь спрашивает о японской поэзии, вызови rag_search;
+- если пользователь просит сгенерировать хайку/хокку (даже без указания темы), вызови generate_haiku.
 Вызывай ровно один инструмент.
 
 ВАЖНО:
@@ -46,7 +51,7 @@ def select_tool_call(user_input: str, **kwargs) -> tuple[str, dict] | None:
 Ты: rag_search({"question": "Священные цифры в старояпонском языке"})
 """
 
-    # [ tool desctiption ]
+    # tool desctiption
 
     tools_giga = [
         {
@@ -140,12 +145,12 @@ def select_tool_call(user_input: str, **kwargs) -> tuple[str, dict] | None:
     ]
     tools = tools_giga if config.insigma else tools_openai
 
-    # [ payload ]
+    # payload
 
     payload = {
         'messages': [
             {'role': 'system', 'content': system_prompt},
-            {'role': 'user', 'content': user_input},
+            *message_history,
         ],
         'tools': tools,
         'temperature': config.freezing,
@@ -155,31 +160,35 @@ def select_tool_call(user_input: str, **kwargs) -> tuple[str, dict] | None:
         payload['functions'] = tools
         del payload['tools']
 
-    # [ request ]
+    # request
 
     response = post_chat_completions(payload, kwargs.get('verbose', False))
+
+    # response
+
     if 'error' in response:
-        print(f'[select_tool_call] LLM Error: {response["error"]}')
-        return None
+        logger.critical('select_tool_call // LLM Error: {}'.format(response['error']))
+        return 2, None
 
-    # [ response ]
+    try:
+        message = response['choices'][0]['message']
 
-    message = response['choices'][0]['message']
+        function_call = message.get('function_call')
+        if function_call:
+            name = function_call.get('name')
+            arguments = json.loads(function_call.get('arguments', '{}'))
+            return 0, (name, arguments)
 
-    function_call = message.get('function_call')
-    if function_call:
-        name = function_call.get('name')
-        arguments = json.loads(function_call.get('arguments', '{}'))
-        return name, arguments
+        tool_calls = message.get('tool_calls')
+        if tool_calls:
+            tool_call = tool_calls[0]
+            name = tool_call['function'].get('name')
+            arguments = json.loads(tool_call['function'].get('arguments', '{}'))
+            return 0, (name, arguments)
 
-    tool_calls = message.get('tool_calls')
-    if tool_calls:
-        tool_call = tool_calls[0]
-        name = tool_call['function'].get('name')
-        arguments = json.loads(tool_call['function'].get('arguments', '{}'))
-        return name, arguments
+        logger.critical('select_tool_call // LLM Selection Fail')
+        return 1, None
 
-    # TODO: validate func name
-
-    print('[select_tool_call] LLM не выбрал инструмент')
-    return None
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as ex:
+        logger.exception(f'select_tool_call // LLM Response Parse Error: {ex}')
+        return 3, None

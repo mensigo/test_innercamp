@@ -32,10 +32,8 @@ def test_generate_haiku_smoke(monkeypatch: pytest.MonkeyPatch):
     """Generate haiku should return haiku text with stats."""
     haiku_service = load_haiku_service(monkeypatch)
 
-    monkeypatch.setattr(
-        haiku_service,
-        'post_chat_completions',
-        lambda _payload: {
+    def stub_post_chat_completions(_payload, _verbose=False):
+        return {
             'choices': [
                 {
                     'message': {
@@ -43,7 +41,10 @@ def test_generate_haiku_smoke(monkeypatch: pytest.MonkeyPatch):
                     }
                 }
             ]
-        },
+        }
+
+    monkeypatch.setattr(
+        haiku_service, 'post_chat_completions', stub_post_chat_completions
     )
 
     client = haiku_service.app.test_client()
@@ -76,10 +77,11 @@ def test_generate_haiku_llm_error(monkeypatch: pytest.MonkeyPatch):
     """Generate haiku should return 500 when LLM fails."""
     haiku_service = load_haiku_service(monkeypatch)
 
+    def stub_post_chat_completions(_payload, _verbose=False):
+        return {'error': 'LLM unavailable'}
+
     monkeypatch.setattr(
-        haiku_service,
-        'post_chat_completions',
-        lambda _payload: {'error': 'LLM unavailable'},
+        haiku_service, 'post_chat_completions', stub_post_chat_completions
     )
 
     client = haiku_service.app.test_client()
@@ -127,10 +129,8 @@ def test_generate_haiku_function(monkeypatch: pytest.MonkeyPatch):
     """Generate haiku function should call LLM and return text."""
     from src.s02_simple_haiku.haiku import haiku_service
 
-    monkeypatch.setattr(
-        haiku_service,
-        'post_chat_completions',
-        lambda _payload: {
+    def stub_post_chat_completions(_payload, _verbose=False):
+        return {
             'choices': [
                 {
                     'message': {
@@ -138,7 +138,10 @@ def test_generate_haiku_function(monkeypatch: pytest.MonkeyPatch):
                     }
                 }
             ]
-        },
+        }
+
+    monkeypatch.setattr(
+        haiku_service, 'post_chat_completions', stub_post_chat_completions
     )
 
     result = haiku_service.generate_haiku('тест')
@@ -152,7 +155,7 @@ def test_generate_haiku_function_with_temperature(monkeypatch: pytest.MonkeyPatc
 
     captured_payload = {}
 
-    def capture_payload(payload):
+    def capture_payload(payload, verbose=False):
         captured_payload.update(payload)
         return {'choices': [{'message': {'content': 'Хайку текст'}}]}
 
