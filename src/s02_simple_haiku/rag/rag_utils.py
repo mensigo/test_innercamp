@@ -3,6 +3,7 @@
 import requests
 
 from src import config
+from .logger import logger
 
 
 def check_health() -> bool:
@@ -15,17 +16,9 @@ def check_health() -> bool:
         response.raise_for_status()
         data = response.json()
         return bool(data.get('index_ready'))
-    except requests.exceptions.ConnectionError:
-        print('RAG-TOOL: Не удалось подключиться к RAG сервису (Connection refused)')
-        return False
-    except requests.exceptions.Timeout:
-        print('RAG-TOOL: Превышено время ожидания ответа от RAG сервиса (Timeout)')
-        return False
-    except requests.exceptions.RequestException as e:
-        print(f'RAG-TOOL: Ошибка при обращении к RAG сервису - {e}')
-        return False
-    except Exception as e:
-        print(f'RAG-TOOL: Неожиданная ошибка - {e}')
+
+    except Exception as ex:
+        logger.error(f'rag_utils // Неожиданная ошибка - {ex}')
         return False
 
 
@@ -43,17 +36,9 @@ def fetch_answer(question: str, top_k: int = 2) -> dict:
         response = requests.post(url, json=payload, timeout=8)
         response.raise_for_status()
         return response.json()
-    except requests.exceptions.ConnectionError:
-        print('RAG-TOOL: Не удалось подключиться к RAG сервису (Connection refused)')
-        return {}
-    except requests.exceptions.Timeout:
-        print('RAG-TOOL: Превышено время ожидания ответа от RAG сервиса (Timeout)')
-        return {}
-    except requests.exceptions.RequestException as e:
-        print(f'RAG-TOOL: Ошибка при обращении к RAG сервису - {e}')
-        return {}
-    except Exception as e:
-        print(f'RAG-TOOL: Неожиданная ошибка - {e}')
+
+    except Exception as ex:
+        logger.critical(f'rag_utils // Неожиданная ошибка - {ex}')
         return {}
 
 
@@ -62,7 +47,7 @@ def answer_question(question: str) -> dict:
     Answer poetry question using RAG service.
     """
     response = fetch_answer(question)
-    if not response:
+    if not isinstance(response, dict) or not response:
         return {
             'answer': 'Не удалось получить ответ от RAG сервиса.',
             'chunk_title_list': [],
@@ -74,8 +59,14 @@ def answer_question(question: str) -> dict:
             'chunk_title_list': [],
             'chunk_texts': [],
         }
+    chunk_titles = response.get('chunk_title_list', [])
+    chunk_texts = response.get('chunk_texts', [])
+    if not isinstance(chunk_titles, list):
+        chunk_titles = []
+    if not isinstance(chunk_texts, list):
+        chunk_texts = []
     return {
-        'answer': response.get('answer', ''),
-        'chunk_title_list': response.get('chunk_title_list', []),
-        'chunk_texts': response.get('chunk_texts', []),
+        'answer': str(response.get('answer', '')),
+        'chunk_title_list': chunk_titles,
+        'chunk_texts': chunk_texts,
     }

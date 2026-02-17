@@ -11,6 +11,7 @@ from .build_index import (
     embed_texts,
     init_faiss_index,
 )
+from .logger import logger
 
 DEFAULT_TOP_K = 2
 
@@ -31,16 +32,18 @@ def init_rag_index():
     RAG_CHUNKS = build_rag_chunks()
 
     if not RAG_CHUNKS:
-        print('RAG: нет markdown данных для индексации')
+        logger.critical('rag_service // нет markdown данных для индексации')
         return
 
     texts = [chunk.text for chunk in RAG_CHUNKS]
     RAG_INDEX, RAG_DIM = init_faiss_index(texts)
 
     if RAG_INDEX is None:
-        print('RAG: индекс не создан, проверьте доступ к embeddings')
+        logger.critical(
+            'rag_service // индекс не создан, проверьте доступ к embeddings'
+        )
     else:
-        print(f'RAG: индекс создан, чанков={len(RAG_CHUNKS)}')
+        logger.info(f'rag_service // индекс создан, чанков={len(RAG_CHUNKS)}')
 
 
 def _ensure_rag_index():
@@ -55,7 +58,11 @@ def _ensure_rag_index():
 @app.before_request
 def _before_request():
     """Ensure RAG index is built before handling requests."""
-    _ensure_rag_index()
+    try:
+        _ensure_rag_index()
+    except Exception as ex:
+        logger.error(f'rag_service // init error: {ex}')
+        return jsonify({'error': 'Initialization failed'}), 500
 
 
 def search_chunks(question: str, top_k: int) -> list[RagChunk]:
@@ -119,13 +126,13 @@ def answer_with_context(question: str, chunks: list[RagChunk]) -> str:
 
     response = post_chat_completions(payload)
     if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
+        logger.error(f'rag_service // LLM Error: {response["error"]}')
         return 'Ошибка при обращении к LLM.'
 
     try:
         return response['choices'][0]['message']['content'].strip()
     except (KeyError, IndexError) as ex:
-        print(f'LLM Response Error: {ex}')
+        logger.error(f'rag_service // LLM Response Error: {ex}')
         raise Exception('Ошибка при обработке ответа LLM.') from ex
 
 
@@ -135,8 +142,11 @@ def search():
     Search RAG index by question and return top chunks.
     """
     payload = request.get_json()
+
     if not payload or 'question' not in payload:
+        logger.error(f'rag_service // search error: missing question')
         return jsonify({'error': 'Missing question'}), 400
+
     try:
         question = str(payload.get('question', '')).strip()
         top_k = int(payload.get('top_k', DEFAULT_TOP_K))
@@ -147,6 +157,10 @@ def search():
         chunk_titles = [chunk.title for chunk in chunks]
         chunk_texts = [chunk.text for chunk in chunks]
 
+        logger.info(
+            f'rag_service // search ok, question_len={len(question)}, top_k={top_k}, chunks={len(chunks)}'
+        )
+
         return jsonify(
             {
                 'answer': answer,
@@ -156,8 +170,11 @@ def search():
                 'top_k': top_k,
             }
         )
+    except RuntimeError as ex:
+        logger.error(f'rag_service // search runtime error: {ex}')
+        return jsonify({'error': 'Search failed'}), 500
     except Exception as ex:
-        print(f'RAG search error: {ex}')
+        logger.error(f'rag_service // search error: {ex}')
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -173,6 +190,9 @@ def health():
         'chunks': len(RAG_CHUNKS),
     }
     status_code = 200 if ready else 503
+    logger.info(
+        f'rag_service // health status={payload["status"]}, chunks={payload["chunks"]}'
+    )
     return jsonify(payload), status_code
 
 

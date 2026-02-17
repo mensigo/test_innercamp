@@ -190,7 +190,8 @@ def main():
             add_to_history(message_history, 'assistant', fail_message)
             continue
 
-        # Выполняем инструмент
+        # execute
+
         if tool_name == 'rag_search':
             print('[main | execute_tool] Выполнение rag_search')
             question = str(tool_args.get('question', '')).strip()

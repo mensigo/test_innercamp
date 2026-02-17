@@ -9,6 +9,7 @@ import faiss
 import numpy as np
 
 from src import post_embeddings
+from .logger import logger
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data'
@@ -174,8 +175,7 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         response = post_embeddings(payload)
 
         if 'error' in response:
-            print(f'RAG embeddings error: {response["error"]}')
-            return []
+            raise RuntimeError(f'build_index // embeddings error: {response["error"]}')
 
         data = response.get('data', [])
         data_sorted = sorted(data, key=lambda item: item.get('index', 0))
@@ -214,8 +214,7 @@ def load_faiss_index() -> tuple[faiss.Index | None, int]:
         index = faiss.read_index(str(INDEX_PATH))
         return index, index.d
     except Exception as ex:
-        print(f'RAG: не удалось загрузить индекс: {ex}')
-        return None, 0
+        raise RuntimeError(f'build_index // не удалось загрузить индекс: {ex}') from ex
 
 
 def save_faiss_index(index: faiss.Index):
@@ -225,7 +224,7 @@ def save_faiss_index(index: faiss.Index):
     try:
         faiss.write_index(index, str(INDEX_PATH))
     except Exception as ex:
-        print(f'RAG: не удалось сохранить индекс: {ex}')
+        raise RuntimeError(f'build_index // не удалось сохранить индекс: {ex}') from ex
 
 
 def load_index_hash() -> str | None:
@@ -237,8 +236,10 @@ def load_index_hash() -> str | None:
         return None
     try:
         return path.read_text(encoding='utf-8').strip()
-    except Exception:
-        return None
+    except Exception as ex:
+        raise RuntimeError(
+            f'build_index // не удалось прочитать хеш индекса: {ex}'
+        ) from ex
 
 
 def save_index_hash(hash_str: str):
@@ -248,7 +249,9 @@ def save_index_hash(hash_str: str):
     try:
         _hash_path().write_text(hash_str, encoding='utf-8')
     except Exception as ex:
-        print(f'RAG: не удалось сохранить хеш индекса: {ex}')
+        raise RuntimeError(
+            f'build_index // не удалось сохранить хеш индекса: {ex}'
+        ) from ex
 
 
 def init_faiss_index(texts: list[str]) -> tuple[faiss.Index | None, int]:
@@ -268,7 +271,9 @@ def init_faiss_index(texts: list[str]) -> tuple[faiss.Index | None, int]:
         hash_ok = stored_hash == texts_hash
         if not count_ok or not hash_ok:
             reason = 'количество чанков' if not count_ok else 'содержимое чанков'
-            print(f'RAG: индекс не соответствует ({reason}), пересоздание')
+            logger.info(
+                f'build_index // индекс не соответствует ({reason}), пересоздание'
+            )
             index, dimension = build_faiss_index(texts)
             if index is not None:
                 save_faiss_index(index)
