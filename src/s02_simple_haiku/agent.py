@@ -103,75 +103,6 @@ def main():
         # Добавляем пользовательский ввод в историю
         add_to_history(message_history, 'user', user_input)
 
-        # Если ожидаем уточнение параметра
-        if pending_clarification:
-            print('[main | clarification] Обработка уточнения...')
-            extracted = extract_param_from_clarification(
-                user_input,
-                pending_clarification['missing_param'],
-                pending_clarification['tool_name'],
-            )
-
-            if extracted:
-                print(f'[main | clarification] Параметр извлечен: {extracted}')
-                # Обновляем аргументы инструмента
-                tool_name = pending_clarification['tool_name']
-                tool_args = pending_clarification['tool_args']
-                tool_args[pending_clarification['missing_param']] = extracted
-
-                # Выполняем инструмент
-                if tool_name == 'rag_search':
-                    print('[main | execute_tool] Выполнение rag_search')
-                    question = str(tool_args.get('question', '')).strip()
-                    response = answer_question(question)
-                    answer = response.get('answer', '')
-                    print(f'[main | execute_tool] \n{answer}\n')
-                    add_to_history(message_history, 'assistant', answer)
-
-                elif tool_name == 'generate_haiku':
-                    print('[main | execute_tool] Выполнение generate_haiku')
-                    theme = str(tool_args.get('theme', '')).strip()
-                    print(f'[main | execute_tool] Тема: {theme}')
-                    result = generate_haiku(theme)
-
-                    if 'error' in result and result['error']:
-                        error_msg = f'Ошибка при генерации хайку: {result["error"]}'
-                        print(f'[main | execute_tool] {error_msg}\n')
-                        add_to_history(message_history, 'assistant', error_msg)
-                    else:
-                        haiku_text = result.get('haiku_text', '')
-                        if not haiku_text:
-                            error_msg = 'Ошибка при генерации хайку.'
-                            print(f'[main | execute_tool] {error_msg}\n')
-                            add_to_history(message_history, 'assistant', error_msg)
-                        else:
-                            display_haiku(haiku_text, result)
-                            add_to_history(message_history, 'assistant', haiku_text)
-
-                pending_clarification = None
-            else:
-                # Параметр не извлечен, увеличиваем счетчик попыток
-                pending_clarification['retry_count'] += 1
-                print(
-                    f'[main | clarification] Попытка {pending_clarification["retry_count"]}/{MAX_CLARIFICATION_RETRIES}'
-                )
-
-                if pending_clarification['retry_count'] >= MAX_CLARIFICATION_RETRIES:
-                    response = 'Не удалось получить параметр. Попробуйте заново.'
-                    print(f'[main | clarification] {response}\n')
-                    add_to_history(message_history, 'assistant', response)
-                    pending_clarification = None
-                else:
-                    # Повторяем уточняющий вопрос
-                    prompt = generate_clarification_prompt(
-                        pending_clarification['tool_name'],
-                        pending_clarification['missing_param'],
-                    )
-                    print(f'[main | clarification] {prompt}')
-                    add_to_history(message_history, 'assistant', prompt)
-
-            continue
-
         # Обычный flow: classify -> select -> validate -> execute
 
         # classify
@@ -234,29 +165,28 @@ def main():
             logger.info(f'[select] {select_message}\n')
             add_to_history(message_history, 'assistant', select_message)
 
-        # WIP validate
+        # validate
 
-        is_valid, missing_param = validate_tool_call(tool_name, tool_args, user_input)
+        logger.info('Валидирую инструмент..')
+        logger.debug({'state': 'AgentValidate'})
 
-        if not is_valid:
-            if missing_param:
-                # Запускаем цикл уточнения
-                prompt = generate_clarification_prompt(tool_name, missing_param)
-                print(f'[main | clarification] {prompt}')
-                add_to_history(message_history, 'assistant', prompt)
-                pending_clarification = {
-                    'tool_name': tool_name,
-                    'tool_args': tool_args,
-                    'missing_param': missing_param,
-                    'retry_count': 0,
-                    'original_user_input': user_input,
-                }
-            else:
-                # Другая ошибка валидации (уже выведена в validate_tool_call)
-                response = 'Некорректный запрос. Попробуйте снова.'
-                print(f'[main | validate_tool] {response}\n')
-                add_to_history(message_history, 'assistant', response)
-            continue
+        valid_result, valid_info = validate_tool_call(tool_name, tool_args)
+
+        if valid_result:
+            valid_message = f'Инструмент проверен и готов к вызову.'
+            logger.info(f'[valid] {valid_message}\n')
+            add_to_history(message_history, 'assistant', valid_message)
+
+        elif valid_info[1] == 'missing':
+            pass
+
+        elif valid_info[1] == 'empty':
+            pass
+
+        elif valid_info == ('generate_haiku', 'long'):
+            pass
+
+        # ...
 
         # Выполняем инструмент
         if tool_name == 'rag_search':

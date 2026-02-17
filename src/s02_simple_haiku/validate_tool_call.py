@@ -1,72 +1,36 @@
 """Tool call validation logic."""
 
 
-def detect_theme_change(user_input: str) -> str | None:
-    """
-    Detect theme change intent and extract new theme if provided.
-    """
-    print('[detect_theme_change] start')
-
-    lowered = user_input.lower()
-    triggers = [
-        'сменить тему на ',
-        'смени тему на ',
-        'поменяй тему на ',
-        'измени тему на ',
-        'изменить тему на ',
-    ]
-
-    for trigger in triggers:
-        if trigger in lowered:
-            start = lowered.index(trigger) + len(trigger)
-            return user_input[start:].strip()
-
-    if 'сменить тему' in lowered or 'другая тема' in lowered:
-        return ''
-
-    return None
-
-
 def validate_tool_call(
-    tool_name: str, tool_args: dict, user_input: str
-) -> tuple[bool, str | None]:
+    tool_name: str, tool_args: dict
+) -> tuple[bool, tuple[str, str] | None]:
     """
     Validate tool arguments before calling tool.
-    Returns (is_valid, missing_param_name).
+    Returns:
+        True, None - if valid
+        False, (param_name, reason) - if param is invalid/missing
+        False, None - if unknown tool
     """
-    print('[validate_tool_call] start')
-
     if tool_name == 'rag_search':
-        question = str(tool_args.get('question', '')).strip()
-        if not question:
-            return False, 'question'
+        if 'question' not in tool_args:
+            return False, ('question', 'missing')
+
+        if not str(tool_args['question']).strip():
+            return False, ('question', 'empty')
+
         return True, None
 
     if tool_name == 'generate_haiku':
-        theme = str(tool_args.get('theme', '')).strip()
-        theme_change = detect_theme_change(user_input)
-        if theme_change is not None:
-            if theme_change:
-                print(
-                    f'[validate_tool_call | theme_change] Тема изменена на: {theme_change}'
-                )
-            else:
-                print(
-                    '[validate_tool_call | theme_change] Укажите новую тему после команды смены темы.'
-                )
-            print('[validate_tool_call | theme_change] Сформулируй запрос заново.\n')
-            return False, None
+        if 'theme' not in tool_args:
+            return False, ('theme', 'missing')
 
+        theme = str(tool_args['theme']).strip()
         if not theme:
-            return False, 'theme'
+            return False, ('theme', 'empty')
 
         if len(theme) > 20:
-            print(
-                '[validate_tool_call | validation_error] Тема слишком длинная. Сократи до 1-2 слов.'
-            )
-            return False, None
+            return False, ('theme', 'long')
 
         return True, None
 
-    print('[validate_tool_call | error] Неизвестный инструмент.')
     return False, None

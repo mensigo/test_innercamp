@@ -186,7 +186,7 @@ def select_tool_call(
             arguments = json.loads(tool_call['function'].get('arguments', '{}'))
             return 0, (name, arguments)
 
-        logger.critical('select_tool_call // LLM Selection Fail')
+        logger.warning('select_tool_call // LLM Selection Fail')
         return 1, None
 
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as ex:
