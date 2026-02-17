@@ -177,6 +177,7 @@ def select_tool_call(
         if function_call:
             name = function_call.get('name')
             arguments = json.loads(function_call.get('arguments', '{}'))
+            logger.debug('select_tool_call // Selection OK')
             return 0, (name, arguments)
 
         tool_calls = message.get('tool_calls')
@@ -184,11 +185,14 @@ def select_tool_call(
             tool_call = tool_calls[0]
             name = tool_call['function'].get('name')
             arguments = json.loads(tool_call['function'].get('arguments', '{}'))
+            logger.debug('select_tool_call // Selection OK')
             return 0, (name, arguments)
 
         logger.warning('select_tool_call // LLM Selection Fail')
         return 1, None
 
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as ex:
-        logger.exception(f'select_tool_call // LLM Response Parse Error: {ex}')
+        logger.opt(exception=True).critical(
+            f'select_tool_call // LLM Response Parse Error: {ex}'
+        )
         return 3, None
