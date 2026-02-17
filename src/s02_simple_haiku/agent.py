@@ -180,20 +180,15 @@ def main():
         valid_result, valid_info = validate_tool_call(tool_name, tool_args)
 
         if valid_result:
-            valid_message = f'Инструмент проверен и готов к вызову.'
+            valid_message = valid_info['message']
             logger.info(f'[valid] {valid_message}\n')
             add_to_history(message_history, 'assistant', valid_message)
 
-        elif valid_info[1] == 'missing':
-            pass
-
-        elif valid_info[1] == 'empty':
-            pass
-
-        elif valid_info == ('generate_haiku', 'long'):
-            pass
-
-        # ...
+        else:
+            fail_message = valid_info['message']
+            logger.info(f'[valid] {fail_message}')
+            add_to_history(message_history, 'assistant', fail_message)
+            continue
 
         # Выполняем инструмент
         if tool_name == 'rag_search':
