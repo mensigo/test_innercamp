@@ -7,7 +7,8 @@ def classify_intent(message_history: list[dict], **kwargs) -> int:
     Returns:
         0 - relevant request
         1 - irrelevant request
-        2 - error caught
+        2 - request error
+        3 - parsing error
     """
     system_prompt = """Ты классификатор запросов.
 Определи, относится ли запрос к японской поэзии или генерации хайку.
@@ -46,6 +47,6 @@ def classify_intent(message_history: list[dict], **kwargs) -> int:
         content = response['choices'][0]['message']['content'].strip().lower()
         return 0 if ('да' in content or 'yes' in content) else 1
 
-    except (KeyError, IndexError) as e:
-        print(f'classify_intent // LLM Response Parse Error: {e}')
-        return 2
+    except (KeyError, IndexError) as ex:
+        logger.exception(f'classify_intent // LLM Response Parse Error: {ex}')
+        return 3

@@ -1,6 +1,6 @@
 """CLI agent with intent classification and tool routing."""
 
-from .clarification import (
+from .clarify import (
     extract_param_from_clarification,
     generate_clarification_prompt,
 )
@@ -181,6 +181,11 @@ def main():
 
         clf_result = classify_intent(message_history, verbose=VERBOSE)
 
+        if clf_result == 3:
+            clf_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
+            logger.info(f'[cls] {clf_message}\n')
+            break
+
         if clf_result == 2:
             clf_message = 'Ошибка при запросе LLM, завершаюсь..'
             logger.info(f'[cls] {clf_message}\n')
@@ -200,14 +205,37 @@ def main():
 
         # select
 
-        tool_call = select_tool_call(user_input, verbose=VERBOSE)
-        if not tool_call:
-            response = 'SEL: Не удалось определить инструмент. Переформулируйте вопрос.'
-            print(f'[main | select_tool] {response}\n')
-            add_to_history(message_history, 'assistant', response)
+        logger.info('Выбираю подходящий инструмент..')
+        logger.debug({'state': 'AgentSelect'})
+
+        select_result, select_tool = select_tool_call(message_history, verbose=VERBOSE)
+
+        if select_result == 3:
+            select_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
+            logger.info(f'[select] {select_message}\n')
+            break
+
+        if select_result == 2:
+            select_message = 'Ошибка при запросе LLM, завершаюсь..'
+            logger.info(f'[select] {select_message}\n')
+            break
+
+        if select_result == 1:
+            select_message = (
+                'Не удалось определить инструмент. Просьба переформулировать запрос.'
+            )
+            logger.info(f'[select] {select_message}\n')
+            add_to_history(message_history, 'assistant', select_message)
             continue
 
-        tool_name, tool_args = tool_call
+        if select_result == 0:
+            tool_name, tool_args = select_tool
+            select_message = f'Выбран инструмент {tool_name} с параметрами {tool_args}'
+            logger.info(f'[select] {select_message}\n')
+            add_to_history(message_history, 'assistant', select_message)
+
+        # WIP validate
+
         is_valid, missing_param = validate_tool_call(tool_name, tool_args, user_input)
 
         if not is_valid:
