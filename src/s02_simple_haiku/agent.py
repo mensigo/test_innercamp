@@ -79,14 +79,19 @@ def main():
     """
     Main interactive loop for the haiku agent.
     """
-    print_help()
-
     message_history: list[dict] = []
     pending_clarification: dict | None = None
+    iteration = 0
 
     while True:
-        logger.debug({'state': 'AgentStart'})
+        if iteration == 0:
+            logger.debug({'state': 'AgentStart'})
+            print_help()
+        else:
+            logger.debug({'state': 'AgentRestart'})
+
         user_input = input('Введите запрос: ').strip()
+        iteration += 1
 
         if not user_input:
             continue
@@ -94,9 +99,11 @@ def main():
         lowered = user_input.lower()
         if lowered in EXIT_COMMANDS:
             logger.info('[main] До свидания!')
+            logger.debug({'state': 'AgentEnd'})
             break
 
         if lowered in HELP_COMMANDS:
+            logger.debug({'state': 'AgentHelp'})
             print_help()
             continue
 
@@ -107,7 +114,7 @@ def main():
 
         # classify
 
-        logger.info('Анализирую релевантность запроса..')
+        logger.info('[cls] Анализирую релевантность запроса..')
         logger.debug({'state': 'AgentClassify'})
 
         clf_result = classify_intent(message_history, verbose=VERBOSE)
@@ -136,7 +143,7 @@ def main():
 
         # select
 
-        logger.info('Выбираю подходящий инструмент..')
+        logger.info('[select] Выбираю подходящий инструмент..')
         logger.debug({'state': 'AgentSelect'})
 
         select_result, select_tool = select_tool_call(message_history, verbose=VERBOSE)
@@ -167,7 +174,7 @@ def main():
 
         # validate
 
-        logger.info('Валидирую инструмент..')
+        logger.info('[valid] Валидирую инструмент..')
         logger.debug({'state': 'AgentValidate'})
 
         valid_result, valid_info = validate_tool_call(tool_name, tool_args)
