@@ -19,7 +19,7 @@ def check_health() -> bool:
         return bool(data.get('index_ready'))
 
     except Exception as ex:
-        logger.error(f'rag_utils // Неожиданная ошибка - {ex}')
+        logger.error(f'rag_utils // Неожиданная ошибка: {ex}')
         return False
 
 
