@@ -1,7 +1,6 @@
 """Tests for parameter clarification logic."""
 
 import pytest
-
 from src.s02_simple_haiku.clarification import (
     extract_param_from_clarification,
     generate_clarification_prompt,

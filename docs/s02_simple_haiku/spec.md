@@ -149,12 +149,12 @@ todo retries ?
   - пишет "validate_tool_call // Missing Param: generate_haiku::theme" в лог (warning)
   - проходит на Шаг 1 (запрос ввода от пользователя)
 
-Если параметр `question` пустой, то агент:
+Если параметр `theme` пустой, то агент:
   - пишет "Не совсем понял вопрос. Просьба переформулировать." в stdout и добавляет в историю сообщений
   - пишет "validate_tool_call // Empty Param: generate_haiku::theme" в лог (warning)
   - проходит на Шаг 1 (запрос ввода от пользователя)
 
-Если параметр `question` превышает `config.param_text_maxlen` символов, то агент:
+Если параметр `theme` превышает `config.PARAM_THEME_MAXLEN` символов, то агент:
   - пишет "Тема слишком длинная. Просьба сформулировать более кратко." в stdout и добавляет в историю сообщений
   - пишет "validate_tool_call // Too Long Param: generate_haiku::theme" в лог (warning)
   - проходит на Шаг 1 (запрос ввода от пользователя)

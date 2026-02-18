@@ -144,7 +144,7 @@ def search():
     payload = request.get_json()
 
     if not payload or 'question' not in payload:
-        logger.error(f'rag_service // search error: missing question')
+        logger.error('rag_service // search error: missing question')
         return jsonify({'error': 'Missing question'}), 400
 
     try:

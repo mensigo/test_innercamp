@@ -1,16 +1,12 @@
 """CLI agent with intent classification and tool routing."""
 
-from .clarify import (
-    extract_param_from_clarification,
-    generate_clarification_prompt,
-)
+from ..config import config
+from ..logger import logger
 from .classify_intent import classify_intent
 from .haiku import generate_haiku
 from .rag import answer_question
 from .select_tool_call import select_tool_call
 from .validate_tool_call import validate_tool_call
-from ..config import config
-from ..logger import logger
 
 EXIT_COMMANDS = {'/exit', '/quit', '/q', 'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
@@ -80,7 +76,6 @@ def main():
     Main interactive loop for the haiku agent.
     """
     message_history: list[dict] = []
-    pending_clarification: dict | None = None
     iteration = 0
 
     while True:
@@ -107,7 +102,6 @@ def main():
             print_help()
             continue
 
-        # Добавляем пользовательский ввод в историю
         add_to_history(message_history, 'user', user_input)
 
         # Обычный flow: classify -> select -> validate -> execute

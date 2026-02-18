@@ -5,7 +5,6 @@ from pathlib import Path
 
 from loguru import logger
 
-
 LOG_PATH = Path(__file__).resolve().parent / 'tool_rag_search.log'
 
 # Reset default handlers
@@ -23,7 +22,7 @@ logger.add(
 logger.add(
     LOG_PATH,
     format='{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}',
-    level='INFO',
+    level='DEBUG',
     rotation='5 MB',
     retention='3 days',
 )

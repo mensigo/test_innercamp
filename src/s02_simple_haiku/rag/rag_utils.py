@@ -3,6 +3,7 @@
 import requests
 
 from src import config
+
 from .logger import logger
 
 
@@ -38,7 +39,7 @@ def fetch_answer(question: str, top_k: int = 2) -> dict:
         return response.json()
 
     except Exception as ex:
-        logger.critical(f'rag_utils // Неожиданная ошибка - {ex}')
+        logger.error(f'rag_utils // Неожиданная ошибка - {ex}')
         return {}
 
 

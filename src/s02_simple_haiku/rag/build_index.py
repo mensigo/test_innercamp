@@ -9,6 +9,7 @@ import faiss
 import numpy as np
 
 from src import post_embeddings
+
 from .logger import logger
 
 BASE_DIR = Path(__file__).resolve().parent

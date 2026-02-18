@@ -1,4 +1,4 @@
-## rag_seach tool
+## rag_search tool
 
 Лог префикс: `[rag_search]`
 
