@@ -14,7 +14,7 @@ def check_health(timeout: int = 10) -> bool:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
         data = response.json()
-        logger.debug(f'check_health // Recieved data: {data}')
+        logger.debug(f'check_health // Received data: {data}')
         return data['status'] == 'ok'
 
     except Exception as ex:
@@ -41,7 +41,7 @@ def answer_question(
         response = requests.post(url, json=payload, timeout=search_timeout)
         response.raise_for_status()
         data = response.json()
-        logger.debug(f'answer_question // Recieved data: {data}')
+        logger.debug(f'answer_question // Received data: {data}')
 
         if 'error' in data:
             logger.error('answer_question // Search error: {}'.format(data['error']))

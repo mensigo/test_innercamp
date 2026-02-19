@@ -208,7 +208,7 @@ def _build_faiss_index(texts: list[str]) -> faiss.Index | None:
     if not embeddings:
         raise RuntimeError('build_index // No embeddings to build index')
 
-    vectors = np.array(embeddings, dtype='float64')
+    vectors = np.array(embeddings, dtype=np.float32)
     dim = vectors.shape[1]
 
     index = faiss.IndexFlatL2(dim)

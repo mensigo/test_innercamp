@@ -68,8 +68,8 @@ def search_chunks(question: str, top_k: int) -> list[RagChunk]:
     if not embeddings:
         return []
 
-    # Use float64 to match index vectors created in build_index
-    query_vector = np.array(embeddings, dtype='float64')
+    # Use float32 to match index vectors created in build_index
+    query_vector = np.array(embeddings, dtype=np.float32)
     max_k = min(top_k, len(RAG_CHUNKS))
     if max_k <= 0:
         return []
