@@ -3,8 +3,7 @@
 from ..config import config
 from ..logger import logger
 from .classify_intent import classify_intent
-from .haiku import generate_haiku
-from .rag import answer_question
+from .execute_rag_search import answer_question
 from .select_tool_call import select_tool_call
 from .validate_tool_call import validate_tool_call
 
@@ -196,24 +195,27 @@ def main():
             rag_result = answer_question(question, top_k=RAG_TOP_K)
 
             if 'error' in rag_result:
-                rag_message = 'Произошла чудовищная ошибка при запросе на RAG сервис.. Тысяча извинений!'
+                rag_message = (
+                    'Произошла чудовищная ошибка при запросе на RAG сервис.. '
+                    'Тысяча извинений! Попробуем снова?'
+                )
                 logger.info(f'[exec] {rag_message}')
                 add_to_history(message_history, 'assistant', rag_message)
                 continue
 
-            rag_message = 'Ответ RAG: {}'.format(response['answer'])
+            rag_message = 'Ответ RAG: {}'.format(rag_result['answer'])
             logger.info(f'[exec] {rag_message}')
             add_to_history(message_history, 'assistant', rag_message)
 
             rag_titles_message = 'Заголовки топ-{} документов: {}'.format(
-                RAG_TOP_K, ', '.join(response['chunk_title_list'])
+                RAG_TOP_K, ', '.join(rag_result['chunk_title_list'])
             )
             logger.info(f'[exec] {rag_titles_message}')
 
             rag_chunks = [
                 f'[{i + 1}] {title}\n---{text}'
                 for i, (title, text) in enumerate(
-                    zip(response['chunk_title_list'], response['chunk_texts'])
+                    zip(rag_result['chunk_title_list'], rag_result['chunk_texts'])
                 )
             ]
             rag_chunks_message = '\n\n'.join(rag_chunks)

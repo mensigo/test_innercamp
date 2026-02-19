@@ -185,7 +185,6 @@ def health():
     ready = RAG_INDEX is not None and bool(RAG_CHUNKS)
     payload = {
         'status': 'ok' if ready else 'not_ready',
-        'index_ready': ready,
         'chunks': len(RAG_CHUNKS),
     }
     status_code = 200 if ready else 503

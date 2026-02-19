@@ -164,7 +164,7 @@ todo retries ?
   - пишет "validate_tool_call // Validation OK" в лог (debug)
   - проходит на Шаг 5
 
-2.3 Unknown tool (не должен происходить):
+2.3 Неизвестный инструмент (не должен происходить):
   - пишет "Не удалось провалидировать запрос. Просьба переформулировать." в stdout и добавляет в историю сообщений
   - пишет "validate_tool_call // Unknown tool: < name >" в лог (warning)
   - проходит на Шаг 1 (запрос ввода от пользователя)
@@ -180,11 +180,51 @@ todo retries ?
 
 2.1 Пусть это инструмент `rag_search`.
 
-WIP
+Агент осуществляет запрос на RAG сервис /search с параметром `question` и `top_k` (по умолчанию `config.param_rag_top_k`).
 
+2.1.1 Ошибка при запросе / в ответе
 
+Если при выполнении запроса произошла ошибка, то агент:
+- пишет "Произошла чудовищная ошибка при запросе на RAG сервис.. Тысяча извинений! Попробуем снова?" в stdout и добавляет в историю сообщений
+- пишет доп. сообщения в зависимости от ситуации (подробнее ниже)
+- проходит на Шаг 1 (запрос ввода от пользователя)
 
+Дополнительно в зависимости от ситуации:
+- если ошибка при выполнении запроса /health, агент пишет:
+  - "check_health // Unexpected error: < error text >" в лог (error)
+  - "answer_question // Health check failed" в лог (error)
 
+- если ошибка в успешном ответе /health (status != ok), агент пишет "answer_question // Health check failed" в лог (error)
+ 
+- если ошибка при выполнении запроса /search, агент пишет "answer_question // Unexpected error: < error text >" в лог (error)
+- если ошибка в успешном ответе /search (есть поле "error"), агент пишет "answer_question // Search error: < error text >" в лог (error)
+
+2.1.2 Успешный запрос
+
+Если запрос /search успешный, то агент получает следующие данные:
+  ```yaml
+  answer:
+    type: string
+    description: ответ по RAG
+  
+  chunk_title_list:
+    type: array
+    items:
+      type: string
+    description: заголовки топ чанков
+  
+  chunk_texts:
+    type: array
+    items:
+      type: string
+    description: тексты топ чанков
+  ```
+
+Дополнительно агент:
+- пишет "Ответ RAG: < rag answer >" в stdout и добавляет в историю сообщений
+- пишет "Заголовки топ-< top_k > документов: < chunk titles, comma separated >" в stdout
+- пишет "rag_chunks_message: < chunks' content, arbitrary format, visually decent >" в лог (debug)
+- проходит на Шаг 1 (запрос ввода от пользователя)
 
 
 ## Config
@@ -198,7 +238,7 @@ WIP
 | CONTEXT_HIST_LIMIT      | 10                                            | Макс. число сообщений в контексте    |
 | PARAM_QUESTION_MAXLEN   | 30                                            | Макс. допустимая длина вопроса (rag) |
 | PARAM_THEME_MAXLEN      | 20                                            | Макс. допустимая длина темы (haiku)  |
-
+| PARAM_RAG_TOP_K         | 2                                             | Число чанков от RAG                  |
 
 
 
