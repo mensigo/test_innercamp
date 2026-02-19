@@ -10,6 +10,7 @@ import numpy as np
 from tqdm import tqdm
 
 from src import post_embeddings
+
 from .logger import logger
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -17,7 +18,7 @@ DATA_DIR = BASE_DIR / 'data'
 INDEX_PATH = BASE_DIR / 'faiss.index'
 
 DEFAULT_MAX_CHUNK_CHARS = 800
-EMBED_BATCH_SUZE = 8
+EMBED_BATCH_SIZE = 8
 
 
 @dataclass
@@ -164,7 +165,7 @@ def build_rag_chunks(
                 )
             )
     if not chunks:
-        raise RuntimeError(f'build_index // No chunks built')
+        raise RuntimeError('build_index // No chunks built')
 
     return chunks
 
@@ -178,8 +179,8 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
 
     all_embeddings: list[list[float]] = []
 
-    for i in range(0, len(texts), EMBED_BATCH_SUZE):
-        batch = texts[i : i + EMBED_BATCH_SUZE]
+    for i in range(0, len(texts), EMBED_BATCH_SIZE):
+        batch = texts[i : i + EMBED_BATCH_SIZE]
         payload = {'input': batch}
         response = post_embeddings(payload)
 
