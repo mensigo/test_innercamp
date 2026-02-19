@@ -196,8 +196,8 @@ WIP
 | DEFAULT_MODEL           | GigaChat-2-Max                                | Дефолтная модель для генерации       |
 | DEFAULT_EMBEDDING_MODEL | Embeddings                                    | Дефолтная модель для эмбеддингов     |
 | CONTEXT_HIST_LIMIT      | 10                                            | Макс. число сообщений в контексте    |
-| PARAM_QUESTION_MAXLEN   | 20                                            | Макс. допустимая длина вопроса (rag) |
-| PARAM_THEME_MAXLEN      | 10                                            | Макс. допустимая длина темы (haiku)  |
+| PARAM_QUESTION_MAXLEN   | 30                                            | Макс. допустимая длина вопроса (rag) |
+| PARAM_THEME_MAXLEN      | 20                                            | Макс. допустимая длина темы (haiku)  |
 
 
 

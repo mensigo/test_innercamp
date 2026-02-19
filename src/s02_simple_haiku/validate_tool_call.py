@@ -2,8 +2,8 @@
 
 from ..logger import logger
 
-MAX_QUESTION_LEN = 20
-MAX_THEME_LEN = 10
+MAX_QUESTION_LEN = 30
+MAX_THEME_LEN = 20
 
 
 def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
