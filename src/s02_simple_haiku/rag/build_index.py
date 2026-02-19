@@ -7,26 +7,18 @@ from pathlib import Path
 
 import faiss
 import numpy as np
+from tqdm import tqdm
 
 from src import post_embeddings
+
+from .logger import logger
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / 'data'
 INDEX_PATH = BASE_DIR / 'faiss.index'
+
 DEFAULT_MAX_CHUNK_CHARS = 800
-
-
-def _hash_path() -> Path:
-    """Path to stored texts hash (derived from INDEX_PATH for testability)."""
-    return INDEX_PATH.parent / (INDEX_PATH.stem + '.hash')
-
-
-def compute_texts_hash(texts: list[str]) -> str:
-    """
-    Compute SHA256 hash of texts for index consistency validation.
-    """
-    content = '\n'.join(texts)
-    return hashlib.sha256(content.encode('utf-8')).hexdigest()
+EMBED_BATCH_SIZE = 8
 
 
 @dataclass
@@ -37,7 +29,23 @@ class RagChunk:
     ordinal: int
 
 
-def split_sentences(text: str) -> list[str]:
+def _hash_path() -> Path:
+    """Path to stored texts hash (derived from INDEX_PATH for testability)."""
+    return INDEX_PATH.parent / (INDEX_PATH.stem + '.hash')
+
+
+def _compute_texts_hash(texts: list[str]) -> str:
+    """
+    Compute SHA256 hash of texts for index consistency validation.
+    """
+    if not texts:
+        raise RuntimeError('build_index // No texts to compute hash')
+
+    content = '\n'.join(texts)
+    return hashlib.sha256(content.encode('utf-8')).hexdigest()
+
+
+def _split_sentences(text: str) -> list[str]:
     """
     Split text into sentences using punctuation boundaries.
     """
@@ -50,18 +58,16 @@ def split_sentences(text: str) -> list[str]:
 
 def chunk_text(text: str, max_chunk_chars: int) -> list[str]:
     """
-    Split markdown text into smaller chunks by sentences.
+    Split Markdown text into smaller chunks by sentences.
     """
-    sentences = split_sentences(text)
+    sentences = _split_sentences(text)
     if not sentences:
-        return []
+        raise RuntimeError('build_index // No sentences to chunk')
 
     chunks: list[str] = []
     current = ''
 
     for sentence in sentences:
-        if not sentence:
-            continue
         sentence = sentence.strip()
         if not sentence:
             continue
@@ -70,8 +76,10 @@ def chunk_text(text: str, max_chunk_chars: int) -> list[str]:
             if current:
                 chunks.append(current.strip())
                 current = ''
+
             words = sentence.split()
             temp = ''
+
             for word in words:
                 if len(temp) + len(word) + 1 > max_chunk_chars:
                     if temp:
@@ -79,8 +87,10 @@ def chunk_text(text: str, max_chunk_chars: int) -> list[str]:
                     temp = word
                 else:
                     temp = f'{temp} {word}' if temp else word
+
             if temp:
                 chunks.append(temp.strip())
+
             continue
 
         if not current:
@@ -102,7 +112,7 @@ def chunk_text(text: str, max_chunk_chars: int) -> list[str]:
 
 def extract_title(text: str) -> str:
     """
-    Extract the first non-empty line from markdown text.
+    Extract the first non-empty line from Markdown text.
     """
     return next(
         (line.strip() for line in text.splitlines() if line.strip()),
@@ -119,15 +129,27 @@ def build_chunk_title(base_title: str, ordinal: int, total: int) -> str:
     return f'{base_title} ({ordinal})'
 
 
-def load_markdown_chunks(data_dir: Path, max_chunk_chars: int) -> list[RagChunk]:
+def build_rag_chunks(
+    data_dir: Path | None = None,
+    max_chunk_chars: int | None = None,
+) -> list[RagChunk]:
     """
-    Load markdown files from data dir and split into chunks.
+    Load Markdown files from data dir and split into chunks.
     """
+    data_dir = data_dir or DATA_DIR
+    max_chunk_chars = max_chunk_chars or DEFAULT_MAX_CHUNK_CHARS
+
     if not data_dir.exists():
-        return []
+        raise RuntimeError(
+            f'build_index // No files to load (path does not exist): {data_dir}'
+        )
+
+    path_lst = sorted(data_dir.glob('*.md'))
+    if not path_lst:
+        raise RuntimeError(f'build_index // No files to load (empty dir): {data_dir}')
 
     chunks: list[RagChunk] = []
-    for path in sorted(data_dir.glob('*.md')):
+    for path in tqdm(path_lst):
         text = path.read_text(encoding='utf-8')
         base_title = extract_title(text)
         raw_chunks = chunk_text(text, max_chunk_chars)
@@ -142,20 +164,10 @@ def load_markdown_chunks(data_dir: Path, max_chunk_chars: int) -> list[RagChunk]
                     ordinal=idx,
                 )
             )
+    if not chunks:
+        raise RuntimeError('build_index // No chunks built')
 
     return chunks
-
-
-def build_rag_chunks(
-    data_dir: Path | None = None,
-    max_chunk_chars: int | None = None,
-) -> list[RagChunk]:
-    """
-    Build rag chunks from markdown data directory.
-    """
-    resolved_dir = data_dir or DATA_DIR
-    resolved_max = max_chunk_chars or DEFAULT_MAX_CHUNK_CHARS
-    return load_markdown_chunks(resolved_dir, resolved_max)
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -166,16 +178,16 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
         return []
 
     all_embeddings: list[list[float]] = []
-    batch_size = 32
 
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i : i + batch_size]
+    for i in range(0, len(texts), EMBED_BATCH_SIZE):
+        batch = texts[i : i + EMBED_BATCH_SIZE]
         payload = {'input': batch}
         response = post_embeddings(payload)
 
         if 'error' in response:
-            print(f'RAG embeddings error: {response["error"]}')
-            return []
+            raise RuntimeError(
+                'build_index // embeddings error: {}'.format(response['error'])
+            )
 
         data = response.get('data', [])
         data_sorted = sorted(data, key=lambda item: item.get('index', 0))
@@ -185,37 +197,41 @@ def embed_texts(texts: list[str]) -> list[list[float]]:
     return all_embeddings
 
 
-def build_faiss_index(texts: list[str]) -> tuple[faiss.Index | None, int]:
+def _build_faiss_index(texts: list[str]) -> faiss.Index | None:
     """
     Build FAISS index for provided texts.
     """
     if not texts:
-        return None, 0
+        raise RuntimeError('build_index // No texts to build index')
 
     embeddings = embed_texts(texts)
     if not embeddings:
-        return None, 0
+        raise RuntimeError('build_index // No embeddings to build index')
 
-    vectors = np.array(embeddings, dtype='float32')
-    dimension = vectors.shape[1]
+    vectors = np.array(embeddings, dtype=np.float32)
+    dim = vectors.shape[1]
 
-    index = faiss.IndexFlatL2(dimension)
+    index = faiss.IndexFlatL2(dim)
     index.add(vectors)
-    return index, dimension
+    return index
 
 
-def load_faiss_index() -> tuple[faiss.Index | None, int]:
+def load_faiss_index() -> faiss.Index | None:
     """
     Load FAISS index from disk if available.
     """
     if not INDEX_PATH.exists():
-        return None, 0
+        logger.warning(
+            f'build_index // No index to load (path does not exist): {INDEX_PATH}'
+        )
+        return None
+
     try:
         index = faiss.read_index(str(INDEX_PATH))
-        return index, index.d
+        return index
+
     except Exception as ex:
-        print(f'RAG: не удалось загрузить индекс: {ex}')
-        return None, 0
+        raise RuntimeError(f'build_index // Failed to load index: {ex}') from ex
 
 
 def save_faiss_index(index: faiss.Index):
@@ -225,7 +241,7 @@ def save_faiss_index(index: faiss.Index):
     try:
         faiss.write_index(index, str(INDEX_PATH))
     except Exception as ex:
-        print(f'RAG: не удалось сохранить индекс: {ex}')
+        raise RuntimeError(f'build_index // Failed to save index: {ex}') from ex
 
 
 def load_index_hash() -> str | None:
@@ -234,11 +250,14 @@ def load_index_hash() -> str | None:
     """
     path = _hash_path()
     if not path.exists():
+        logger.warning(f'build_index // No hash to load (path does not exist): {path}')
         return None
+
     try:
         return path.read_text(encoding='utf-8').strip()
-    except Exception:
-        return None
+
+    except Exception as ex:
+        raise RuntimeError(f'build_index // Failed to load hash: {ex}') from ex
 
 
 def save_index_hash(hash_str: str):
@@ -248,35 +267,33 @@ def save_index_hash(hash_str: str):
     try:
         _hash_path().write_text(hash_str, encoding='utf-8')
     except Exception as ex:
-        print(f'RAG: не удалось сохранить хеш индекса: {ex}')
+        raise RuntimeError(f'build_index // Failed to save hash: {ex}') from ex
 
 
-def init_faiss_index(texts: list[str]) -> tuple[faiss.Index | None, int]:
+def init_faiss_index(texts: list[str]) -> faiss.Index | None:
     """
     Initialize FAISS index with load or rebuild.
     Rebuilds when count or content hash of texts differs from saved index.
     """
     if not texts:
-        return None, 0
+        raise RuntimeError('build_index // No texts to init index')
 
-    texts_hash = compute_texts_hash(texts)
-    index, dimension = load_faiss_index()
+    texts_hash = _compute_texts_hash(texts)
+    index = load_faiss_index()
 
     if index is not None:
         stored_hash = load_index_hash()
         count_ok = index.ntotal == len(texts)
         hash_ok = stored_hash == texts_hash
-        if not count_ok or not hash_ok:
-            reason = 'количество чанков' if not count_ok else 'содержимое чанков'
-            print(f'RAG: индекс не соответствует ({reason}), пересоздание')
-            index, dimension = build_faiss_index(texts)
-            if index is not None:
-                save_faiss_index(index)
-                save_index_hash(texts_hash)
-    else:
-        index, dimension = build_faiss_index(texts)
-        if index is not None:
-            save_faiss_index(index)
-            save_index_hash(texts_hash)
 
-    return index, dimension
+        if count_ok and hash_ok:
+            return index
+
+        reason = 'num of chunks' if not count_ok else "chunks' content"
+        logger.info(f'build_index // Rebuilding index (bcs {reason} changed)')
+
+    index = _build_faiss_index(texts)
+    save_faiss_index(index)
+    save_index_hash(texts_hash)
+
+    return index

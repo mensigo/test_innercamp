@@ -11,6 +11,7 @@ from .build_index import (
     embed_texts,
     init_faiss_index,
 )
+from .logger import logger
 
 DEFAULT_TOP_K = 2
 
@@ -19,43 +20,41 @@ app = Flask(__name__)
 
 RAG_CHUNKS: list[RagChunk] = []
 RAG_INDEX = None
-RAG_DIM = 0
-_RAG_INITIALIZED = False
 
 
 def init_rag_index():
     """
     Initialize RAG chunks and FAISS index on service start.
     """
-    global RAG_CHUNKS, RAG_INDEX, RAG_DIM
+    global RAG_CHUNKS, RAG_INDEX
     RAG_CHUNKS = build_rag_chunks()
 
     if not RAG_CHUNKS:
-        print('RAG: нет markdown данных для индексации')
-        return
+        logger.critical('rag_service // No Markdown files found')
+        raise RuntimeError('rag_service // Empty RAG_CHUNKS')
 
     texts = [chunk.text for chunk in RAG_CHUNKS]
-    RAG_INDEX, RAG_DIM = init_faiss_index(texts)
+    RAG_INDEX = init_faiss_index(texts)
 
     if RAG_INDEX is None:
-        print('RAG: индекс не создан, проверьте доступ к embeddings')
-    else:
-        print(f'RAG: индекс создан, чанков={len(RAG_CHUNKS)}')
+        logger.critical(
+            'rag_service // Failed to create index, check /embeddings availability'
+        )
+        raise RuntimeError('rag_service // RAG_INDEX is None')
 
-
-def _ensure_rag_index():
-    """Lazy init: build index on first request."""
-    global _RAG_INITIALIZED
-    if _RAG_INITIALIZED or RAG_INDEX is not None:
-        return
-    _RAG_INITIALIZED = True
-    init_rag_index()
+    logger.info(f'rag_service // Index has been initialized, #chunks={len(RAG_CHUNKS)}')
 
 
 @app.before_request
 def _before_request():
-    """Ensure RAG index is built before handling requests."""
-    _ensure_rag_index()
+    """Ensure RAG index is built once before handling requests."""
+    try:
+        if not app.config.get('RAG_READY', False):
+            init_rag_index()
+            app.config['RAG_READY'] = True
+    except Exception as ex:
+        logger.error(f'rag_service // Init error: {ex}')
+        return jsonify({'error': 'Initialization failed'}), 500
 
 
 def search_chunks(question: str, top_k: int) -> list[RagChunk]:
@@ -69,7 +68,8 @@ def search_chunks(question: str, top_k: int) -> list[RagChunk]:
     if not embeddings:
         return []
 
-    query_vector = np.array(embeddings, dtype='float32')
+    # Use float32 to match index vectors created in build_index
+    query_vector = np.array(embeddings, dtype=np.float32)
     max_k = min(top_k, len(RAG_CHUNKS))
     if max_k <= 0:
         return []
@@ -119,14 +119,14 @@ def answer_with_context(question: str, chunks: list[RagChunk]) -> str:
 
     response = post_chat_completions(payload)
     if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
-        return 'Ошибка при обращении к LLM.'
+        logger.error('rag_service // LLM Error: {}'.format(response['error']))
+        raise Exception('rag_service // LLM Error')
 
     try:
         return response['choices'][0]['message']['content'].strip()
     except (KeyError, IndexError) as ex:
-        print(f'LLM Response Error: {ex}')
-        raise Exception('Ошибка при обработке ответа LLM.') from ex
+        logger.error(f'rag_service // LLM Response Error: {ex}')
+        raise Exception('rag_service // LLM Response Error') from ex
 
 
 @app.route('/search', methods=['POST'])
@@ -135,18 +135,24 @@ def search():
     Search RAG index by question and return top chunks.
     """
     payload = request.get_json()
+
     if not payload or 'question' not in payload:
+        logger.error('rag_service // search error: missing question')
         return jsonify({'error': 'Missing question'}), 400
+
     try:
-        question = str(payload.get('question', '')).strip()
-        top_k = int(payload.get('top_k', DEFAULT_TOP_K))
-        top_k = max(1, min(top_k, DEFAULT_TOP_K))
+        question = payload['question'].strip()
+        top_k = int(payload['top_k']) if 'top_k' in payload else DEFAULT_TOP_K
+        top_k = max(1, top_k)
 
         chunks = search_chunks(question, top_k)
         answer = answer_with_context(question, chunks)
         chunk_titles = [chunk.title for chunk in chunks]
         chunk_texts = [chunk.text for chunk in chunks]
 
+        logger.info(
+            f'rag_service // search ok, question_len={len(question)}, top_k={top_k}, chunks={len(chunks)}'
+        )
         return jsonify(
             {
                 'answer': answer,
@@ -156,8 +162,11 @@ def search():
                 'top_k': top_k,
             }
         )
+    except RuntimeError as ex:
+        logger.error(f'rag_service // search runtime error: {ex}')
+        return jsonify({'error': 'Search failed'}), 500
     except Exception as ex:
-        print(f'RAG search error: {ex}')
+        logger.error(f'rag_service // search error: {ex}')
         return jsonify({'error': 'Internal server error'}), 500
 
 
@@ -169,10 +178,12 @@ def health():
     ready = RAG_INDEX is not None and bool(RAG_CHUNKS)
     payload = {
         'status': 'ok' if ready else 'not_ready',
-        'index_ready': ready,
         'chunks': len(RAG_CHUNKS),
     }
     status_code = 200 if ready else 503
+    logger.info(
+        f'rag_service // health status={payload["status"]}, chunks={payload["chunks"]}'
+    )
     return jsonify(payload), status_code
 
 

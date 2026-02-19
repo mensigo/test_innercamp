@@ -40,11 +40,6 @@ def test_print_help():
     agent.print_help()
 
 
-def test_print_reminder():
-    """Print reminder should not raise exception."""
-    agent.print_reminder()
-
-
 def test_add_to_history():
     """Add message to history."""
     history = []

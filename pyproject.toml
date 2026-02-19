@@ -15,6 +15,7 @@ dependencies = [
     "faiss-cpu>=1,<1.9",
     "numpy>=1.20,<2",
     "loguru>=0.7.3",
+    "tqdm>=4",
 ]
 
 [dependency-groups]
@@ -45,6 +46,7 @@ markers = [
     "integration: test multiple components interaction",
     "unit: test single components (fast, with mocks)",
     "llm: test api calls (check prompts)",
+    "rag: test rag related functions",
 ]
 
 [tool.ruff]

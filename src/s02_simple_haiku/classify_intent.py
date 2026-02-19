@@ -45,8 +45,15 @@ def classify_intent(message_history: list[dict], **kwargs) -> int:
 
     try:
         content = response['choices'][0]['message']['content'].strip().lower()
-        return 0 if ('да' in content or 'yes' in content) else 1
+        if 'да' in content or 'yes' in content:
+            logger.debug('classify_intent // Relevant query')
+            return 0
+
+        logger.warning('classify_intent // Irrelevant query')
+        return 1
 
     except (KeyError, IndexError) as ex:
-        logger.exception(f'classify_intent // LLM Response Parse Error: {ex}')
+        logger.opt(exception=True).critical(
+            f'classify_intent // LLM Response Parse Error: {ex}'
+        )
         return 3
