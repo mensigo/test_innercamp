@@ -28,31 +28,31 @@ def test_check_health_true(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(
         ru.requests, 'get', lambda _url, timeout: FakeResponse({'index_ready': True})
     )
-    assert ru.check_health() is True
+    assert ru._check_health() is True
 
 
 def test_fetch_answer_returns_empty_when_unhealthy(monkeypatch: pytest.MonkeyPatch):
     """Fetch answer returns empty dict when health check fails."""
-    monkeypatch.setattr(ru, 'check_health', lambda: False)
-    result = ru.fetch_answer('Q')
+    monkeypatch.setattr(ru, '_check_health', lambda: False)
+    result = ru._fetch_answer('Q')
     assert result == {}
 
 
 def test_fetch_answer_success(monkeypatch: pytest.MonkeyPatch):
     """Fetch answer returns json on success."""
-    monkeypatch.setattr(ru, 'check_health', lambda: True)
+    monkeypatch.setattr(ru, '_check_health', lambda: True)
     monkeypatch.setattr(
         ru.requests,
         'post',
         lambda _url, json, timeout: FakeResponse({'answer': 'ok'}),
     )
-    result = ru.fetch_answer('Q')
+    result = ru._fetch_answer('Q')
     assert result == {'answer': 'ok'}
 
 
 def test_answer_question_fallback_on_empty(monkeypatch: pytest.MonkeyPatch):
     """Answer question returns fallback on empty response."""
-    monkeypatch.setattr(ru, 'fetch_answer', lambda _question: {})
+    monkeypatch.setattr(ru, '_fetch_answer', lambda _question: {})
     result = ru.answer_question('Q')
     assert result['answer']
     assert result['chunk_title_list'] == []
@@ -61,7 +61,7 @@ def test_answer_question_fallback_on_empty(monkeypatch: pytest.MonkeyPatch):
 
 def test_answer_question_error_branch(monkeypatch: pytest.MonkeyPatch):
     """Answer question returns error branch."""
-    monkeypatch.setattr(ru, 'fetch_answer', lambda _question: {'error': 'fail'})
+    monkeypatch.setattr(ru, '_fetch_answer', lambda _question: {'error': 'fail'})
     result = ru.answer_question('Q')
     assert result['answer'] == 'fail'
     assert result['chunk_title_list'] == []
@@ -75,6 +75,6 @@ def test_answer_question_success_branch(monkeypatch: pytest.MonkeyPatch):
         'chunk_title_list': ['T1'],
         'chunk_texts': ['C1'],
     }
-    monkeypatch.setattr(ru, 'fetch_answer', lambda _question: payload)
+    monkeypatch.setattr(ru, '_fetch_answer', lambda _question: payload)
     result = ru.answer_question('Q')
     assert result == payload

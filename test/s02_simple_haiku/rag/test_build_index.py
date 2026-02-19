@@ -21,7 +21,7 @@ def fake_post_embeddings(payload: dict) -> dict:
 def test_split_sentences_basic():
     """Split text into sentences."""
     text = 'Первое предложение. Второе? Третье!'
-    result = bi.split_sentences(text)
+    result = bi._split_sentences(text)
     assert result == ['Первое предложение.', 'Второе?', 'Третье!']
 
 
@@ -67,14 +67,14 @@ def test_build_and_init_faiss_index(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(bi, 'post_embeddings', fake_post_embeddings)
     monkeypatch.setattr(bi, 'INDEX_PATH', tmp_path / 'faiss.index')
 
-    index, dim = bi.build_faiss_index(['a', 'b'])
+    index = bi._build_faiss_index(['a', 'b'])
     assert index is not None
-    assert dim == 3
+    assert index.d == 3
     assert index.ntotal == 2
 
-    index, dim = bi.init_faiss_index(['a', 'b'])
+    index = bi.init_faiss_index(['a', 'b'])
     assert index is not None
-    assert dim == 3
+    assert index.d == 3
     assert bi.INDEX_PATH.exists()
 
 
@@ -85,15 +85,15 @@ def test_init_faiss_index_rebuilds_when_chunk_count_mismatch(
     monkeypatch.setattr(bi, 'post_embeddings', fake_post_embeddings)
     monkeypatch.setattr(bi, 'INDEX_PATH', tmp_path / 'faiss.index')
 
-    index_old, _ = bi.build_faiss_index(['a', 'b'])
+    index_old = bi._build_faiss_index(['a', 'b'])
     bi.save_faiss_index(index_old)
-    bi.save_index_hash(bi.compute_texts_hash(['a', 'b']))
+    bi.save_index_hash(bi._compute_texts_hash(['a', 'b']))
     assert bi.INDEX_PATH.exists()
 
-    index, dim = bi.init_faiss_index(['a', 'b', 'c', 'd'])
+    index = bi.init_faiss_index(['a', 'b', 'c', 'd'])
     assert index is not None
     assert index.ntotal == 4
-    assert dim == 3
+    assert index.d == 3
 
 
 def test_init_faiss_index_rebuilds_when_texts_content_changes(
@@ -103,12 +103,12 @@ def test_init_faiss_index_rebuilds_when_texts_content_changes(
     monkeypatch.setattr(bi, 'post_embeddings', fake_post_embeddings)
     monkeypatch.setattr(bi, 'INDEX_PATH', tmp_path / 'faiss.index')
 
-    index_old, _ = bi.build_faiss_index(['a', 'b'])
+    index_old = bi._build_faiss_index(['a', 'b'])
     bi.save_faiss_index(index_old)
-    bi.save_index_hash(bi.compute_texts_hash(['a', 'b']))
+    bi.save_index_hash(bi._compute_texts_hash(['a', 'b']))
 
-    index, dim = bi.init_faiss_index(['a', 'x'])  # same count, different content
+    index = bi.init_faiss_index(['a', 'x'])  # same count, different content
     assert index is not None
     assert index.ntotal == 2
-    assert dim == 3
-    assert bi.load_index_hash() == bi.compute_texts_hash(['a', 'x'])
+    assert index.d == 3
+    assert bi.load_index_hash() == bi._compute_texts_hash(['a', 'x'])

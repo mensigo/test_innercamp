@@ -160,7 +160,6 @@ def search():
         logger.info(
             f'rag_service // search ok, question_len={len(question)}, top_k={top_k}, chunks={len(chunks)}'
         )
-
         return jsonify(
             {
                 'answer': answer,

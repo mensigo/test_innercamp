@@ -15,6 +15,8 @@ VERBOSE = config.debug
 CONTEXT_HIST_LIMIT = 10
 MAX_CLARIFICATION_RETRIES = 3
 
+RAG_TOP_K = 2
+
 
 def print_help():
     """
@@ -186,14 +188,38 @@ def main():
 
         # execute
 
+        logger.info('[exec] Выполняю инструмент..')
+        logger.debug({'state': 'AgentExecute'})
+
         if tool_name == 'rag_search':
-            print('[main | execute_tool] Выполнение rag_search')
-            question = str(tool_args.get('question', '')).strip()
-            response = answer_question(question)
-            answer = response.get('answer', '')
-            print(f'[main | execute_tool] \n{answer}\n')
-            add_to_history(message_history, 'assistant', answer)
-            continue
+            question = tool_args['question'].strip()
+            rag_result = answer_question(question, top_k=RAG_TOP_K)
+
+            if 'error' in rag_result:
+                rag_message = 'Произошла чудовищная ошибка при запросе на RAG сервис.. Тысяча извинений!'
+                logger.info(f'[exec] {rag_message}')
+                add_to_history(message_history, 'assistant', rag_message)
+                continue
+
+            rag_message = 'Ответ RAG: {}'.format(response['answer'])
+            logger.info(f'[exec] {rag_message}')
+            add_to_history(message_history, 'assistant', rag_message)
+
+            rag_titles_message = 'Заголовки топ-{} документов: {}'.format(
+                RAG_TOP_K, ', '.join(response['chunk_title_list'])
+            )
+            logger.info(f'[exec] {rag_titles_message}')
+
+            rag_chunks = [
+                f'[{i + 1}] {title}\n---{text}'
+                for i, (title, text) in enumerate(
+                    zip(response['chunk_title_list'], response['chunk_texts'])
+                )
+            ]
+            rag_chunks_message = '\n\n'.join(rag_chunks)
+            logger.debug(f'[exec] rag_chunks_message:\n{rag_chunks_message}')
+
+        # WIP
 
         if tool_name == 'generate_haiku':
             print('[main | execute_tool] Выполнение generate_haiku')
