@@ -11,7 +11,7 @@ LOG_PATH = Path(__file__).resolve().parent / 'tool_rag_search.log'
 logger.remove()
 
 # Stdout sink
-logger.add(
+STDOUT_SINK_ID = logger.add(
     sys.stdout,
     format='<green>{time:HH:mm:ss}</green> | <level>{level}</level> | {message}',
     level='INFO',
@@ -19,7 +19,7 @@ logger.add(
 )
 
 # File sink
-logger.add(
+FILE_SINK_ID = logger.add(
     LOG_PATH,
     format='{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}',
     level='DEBUG',

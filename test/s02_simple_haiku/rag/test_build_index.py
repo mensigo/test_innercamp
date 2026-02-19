@@ -5,8 +5,17 @@ from pathlib import Path
 import pytest
 
 from src.s02_simple_haiku.rag import build_index as bi
+from src.s02_simple_haiku.rag import logger as rag_logger
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.rag]
+
+
+@pytest.fixture(autouse=True)
+def remove_rag_file_sink():
+    try:
+        rag_logger.logger.remove(rag_logger.FILE_SINK_ID)
+    except ValueError:
+        pass
 
 
 def fake_post_embeddings(payload: dict) -> dict:
@@ -40,23 +49,23 @@ def test_extract_title_and_fallback():
     assert bi.extract_title('\n\n') == 'Без заголовка'
 
 
-def test_load_markdown_chunks(tmp_path: Path):
-    """Load markdown files into RagChunk list."""
+def test_build_rag_chunks(tmp_path: Path):
+    """Build RagChunk list from markdown files."""
     file_path = tmp_path / 'doc.md'
     file_path.write_text('Тестовый заголовок\nТекст. Еще текст.', encoding='utf-8')
-    chunks = bi.load_markdown_chunks(tmp_path, max_chunk_chars=20)
+    chunks = bi.build_rag_chunks(tmp_path, max_chunk_chars=20)
     assert chunks
     assert chunks[0].source == 'doc.md'
     assert chunks[0].title.startswith('Тестовый заголовок')
 
 
-def test_load_markdown_chunks_multiple_docs(tmp_path: Path):
-    """Load multiple markdown files into RagChunk list."""
+def test_build_rag_chunks_multiple_docs(tmp_path: Path):
+    """Build RagChunk list from multiple markdown files."""
     (tmp_path / 'a.md').write_text('A title\nOne. Two.', encoding='utf-8')
     (tmp_path / 'b.md').write_text('B title\nAlpha. Beta.', encoding='utf-8')
     (tmp_path / 'c.md').write_text('C title\nFirst. Second.', encoding='utf-8')
 
-    chunks = bi.load_markdown_chunks(tmp_path, max_chunk_chars=30)
+    chunks = bi.build_rag_chunks(tmp_path, max_chunk_chars=30)
     assert chunks
     sources = {chunk.source for chunk in chunks}
     assert sources == {'a.md', 'b.md', 'c.md'}

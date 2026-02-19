@@ -46,6 +46,7 @@ markers = [
     "integration: test multiple components interaction",
     "unit: test single components (fast, with mocks)",
     "llm: test api calls (check prompts)",
+    "rag: test rag related functions",
 ]
 
 [tool.ruff]
