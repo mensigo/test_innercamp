@@ -1,11 +1,11 @@
-"""Logger for RAG tool."""
+"""Logger for haiku tool."""
 
 import sys
 from pathlib import Path
 
 from loguru import logger
 
-LOG_PATH = Path(__file__).resolve().parent / 'tool_rag_search.log'
+LOG_PATH = Path(__file__).resolve().parent / 'tool_gen_haiku.log'
 
 # Reset default handlers
 logger.remove()
