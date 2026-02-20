@@ -5,7 +5,7 @@ from types import ModuleType
 
 import pytest
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.haiku]
 
 
 def load_haiku_service(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
@@ -28,7 +28,7 @@ def test_health_ok(monkeypatch: pytest.MonkeyPatch):
     assert data['status'] == 'ok'
 
 
-def test_generate_haiku_smoke(monkeypatch: pytest.MonkeyPatch):
+def test_generate_haiku_success(monkeypatch: pytest.MonkeyPatch):
     """Generate haiku should return haiku text with stats."""
     haiku_service = load_haiku_service(monkeypatch)
 
@@ -48,20 +48,20 @@ def test_generate_haiku_smoke(monkeypatch: pytest.MonkeyPatch):
     )
 
     client = haiku_service.app.test_client()
-    response = client.post('/generate_haiku', json={'topic': 'осень'})
+    response = client.post('/generate_haiku', json={'theme': 'осень'})
     data = response.get_json()
 
     assert response.status_code == 200
     assert 'haiku_text' in data
     assert 'syllables_per_line' in data
     assert 'total_words' in data
-    assert data['topic'] == 'осень'
+    assert data['theme'] == 'осень'
     assert len(data['syllables_per_line']) == 3
     assert data['total_words'] > 0
 
 
-def test_generate_haiku_missing_topic(monkeypatch: pytest.MonkeyPatch):
-    """Generate haiku should return 400 without topic."""
+def test_generate_haiku_missing_theme(monkeypatch: pytest.MonkeyPatch):
+    """Generate haiku should return 400 without theme."""
     haiku_service = load_haiku_service(monkeypatch)
     client = haiku_service.app.test_client()
 
@@ -70,7 +70,7 @@ def test_generate_haiku_missing_topic(monkeypatch: pytest.MonkeyPatch):
 
     assert response.status_code == 400
     assert 'error' in data
-    assert data['error'] == 'Missing topic field'
+    assert data['error'] == 'Missing theme'
 
 
 def test_generate_haiku_llm_error(monkeypatch: pytest.MonkeyPatch):
@@ -85,44 +85,43 @@ def test_generate_haiku_llm_error(monkeypatch: pytest.MonkeyPatch):
     )
 
     client = haiku_service.app.test_client()
-    response = client.post('/generate_haiku', json={'topic': 'зима'})
+    response = client.post('/generate_haiku', json={'theme': 'зима'})
     data = response.get_json()
 
     assert response.status_code == 500
     assert 'error' in data
-    assert data['error'] == 'Failed to generate haiku'
+    assert data['error'] == 'Generation failed'
 
 
-def test_count_syllables_and_words():
-    """Count syllables and words should parse haiku correctly."""
-    from src.s02_simple_haiku.haiku.haiku_service import count_syllables_and_words
+def test_generate_haiku_internal_error(monkeypatch: pytest.MonkeyPatch):
+    """Generate haiku should return 500 on unexpected errors."""
+    haiku_service = load_haiku_service(monkeypatch)
 
-    haiku_text = """Ветер шепчет мне
-О тайнах древних времен
-Листья кружатся"""
+    def stub_post_chat_completions(_payload, _verbose=False):
+        return {
+            'choices': [
+                {
+                    'message': {
+                        'content': 'Ветер шепчет мне\nМоре в тишине\nЗакат золотой'
+                    }
+                }
+            ]
+        }
 
-    result = count_syllables_and_words(haiku_text)
+    def boom(_text):
+        raise RuntimeError('boom')
 
-    assert 'syllables_per_line' in result
-    assert 'total_words' in result
-    assert len(result['syllables_per_line']) == 3
-    assert result['total_words'] == 9
+    monkeypatch.setattr(
+        haiku_service, 'post_chat_completions', stub_post_chat_completions
+    )
+    monkeypatch.setattr(haiku_service, 'count_syllables_and_words', boom)
 
+    client = haiku_service.app.test_client()
+    response = client.post('/generate_haiku', json={'theme': 'осень'})
+    data = response.get_json()
 
-def test_count_syllables_empty_lines():
-    """Count syllables should skip empty lines."""
-    from src.s02_simple_haiku.haiku.haiku_service import count_syllables_and_words
-
-    haiku_text = """Ветер шепчет мне
-
-О тайнах древних времен
-
-Листья кружатся"""
-
-    result = count_syllables_and_words(haiku_text)
-
-    assert len(result['syllables_per_line']) == 3
-    assert result['total_words'] == 9
+    assert response.status_code == 500
+    assert data['error'] == 'Internal server error'
 
 
 def test_generate_haiku_function(monkeypatch: pytest.MonkeyPatch):
@@ -164,3 +163,17 @@ def test_generate_haiku_function_with_temperature(monkeypatch: pytest.MonkeyPatc
     haiku_service.generate_haiku('тест', temperature=0.8)
 
     assert captured_payload['temperature'] == 0.8
+
+
+def test_generate_haiku_function_llm_error(monkeypatch: pytest.MonkeyPatch):
+    """Generate haiku function should return empty string on LLM error."""
+    from src.s02_simple_haiku.haiku import haiku_service
+
+    def stub_post_chat_completions(_payload, _verbose=False):
+        return {'error': 'fail'}
+
+    monkeypatch.setattr(
+        haiku_service, 'post_chat_completions', stub_post_chat_completions
+    )
+
+    assert haiku_service.generate_haiku('тема') == ''

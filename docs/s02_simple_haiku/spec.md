@@ -227,6 +227,54 @@ todo retries ?
 - проходит на Шаг 1 (запрос ввода от пользователя)
 
 
+2.2 Пусть это инструмент `generate_haiku`.
+
+Агент осуществляет запрос на Haiku сервис /generate_haiku с параметром `theme`.
+
+2.2.1 Ошибка при запросе / в ответе
+
+Если при выполнении запроса произошла ошибка, то агент:
+- пишет "Произошла чудовищная ошибка при генерации хайку.. Тысяча извинений! Попробуем снова?" в stdout и добавляет в историю сообщений
+- пишет доп. сообщения в зависимости от ситуации (подробнее ниже)
+- проходит на Шаг 1 (запрос ввода от пользователя)
+
+Дополнительно в зависимости от ситуации:
+- если ошибка при выполнении запроса /health, агент пишет:
+  - "check_health // Unexpected error: < error text >" в лог (error)
+  - "generate_haiku // Health check failed" в лог (error)
+
+- если ошибка в успешном ответе /health (status != ok), агент пишет "generate_haiku // Health check failed" в лог (error)
+ 
+- если ошибка при выполнении запроса /generate_haiku, агент пишет "generate_haiku // Unexpected error: < error text >" в лог (error)
+- если ошибка в успешном ответе /generate_haiku (есть поле "error"), агент пишет "generate_haiku // Generation error: < error text >" в лог (error)
+
+2.2.2 Успешный запрос
+
+Если запрос /generate_haiku успешный, то агент получает следующие данные:
+  ```yaml
+  haiku_text:
+    type: string
+    description: текст хайку
+  
+  syllables_per_line:
+    type: array
+    items:
+      type: integer
+    description: число слогов по строкам хайку
+  
+  total_words:
+    type: integer
+    description: общее число слов в хайку
+  ```
+
+Дополнительно агент:
+- пишет "Хайку: < haiku text, pipe separated >" в stdout и добавляет в историю сообщений
+- пишет "#слогов построчно: < syllables_per_line, '-' separated >" в stdout
+- пишет "#слов итого: < total_words >" в stdout
+- проходит на Шаг 1 (запрос ввода от пользователя)
+
+
+
 ## Config
 
 | param                   | value                                         | description                          |

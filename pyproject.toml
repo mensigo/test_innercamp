@@ -47,6 +47,7 @@ markers = [
     "unit: test single components (fast, with mocks)",
     "llm: test api calls (check prompts)",
     "rag: test rag related functions",
+    "haiku: test haiku related functions",
 ]
 
 [tool.ruff]

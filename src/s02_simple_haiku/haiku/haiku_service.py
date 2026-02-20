@@ -4,14 +4,15 @@ from flask import Flask, jsonify, request
 
 from src import config, post_chat_completions
 
-from .split_word import split_into_syllables_simple
+from .count_stats import count_syllables_and_words
+from .logger import logger
 
 app = Flask(__name__)
 
 
-def generate_haiku(topic: str, **kwargs) -> str:
+def generate_haiku(theme: str, **kwargs) -> str:
     """
-    Generate Russian haiku on specified topic using LLM.
+    Generate Russian haiku on specified theme using LLM.
     """
     system_prompt = """Ты поэт, который пишет хайку на русском языке.
 
@@ -30,7 +31,7 @@ def generate_haiku(topic: str, **kwargs) -> str:
 Волны шепчут о вечном
 Закат золотой"""
 
-    user_prompt = f'Напиши хайку на тему: {topic}'
+    user_prompt = f'Напиши хайку на тему: {theme}'
 
     payload = {
         'messages': [
@@ -43,80 +44,52 @@ def generate_haiku(topic: str, **kwargs) -> str:
     response = post_chat_completions(payload, kwargs.get('verbose', False))
 
     if 'error' in response:
-        print(f'LLM Error: {response["error"]}')
+        logger.error('haiku_service // LLM Error: {}'.format(response['error']))
         return ''
 
-    try:
-        content = response['choices'][0]['message']['content']
-    except Exception as ex:
-        print(f'LLM Missing expected key/index ({ex}): {response}')
-        return ''
-
-    if not isinstance(content, str) or not content.strip():
-        print(f'LLM Missing content in response: {response}')
-        return ''
-
-    haiku = content.strip()
+    haiku = response['choices'][0]['message']['content'].strip()
     return haiku
-
-
-def count_syllables_and_words(haiku_text: str) -> dict:
-    """
-    Count syllables per line and total words in haiku text.
-    """
-    lines = haiku_text.strip().split('\n')
-    syllables_per_line = []
-    total_words = 0
-
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-
-        words = line.split()
-        line_syllable_count = 0
-
-        for word in words:
-            clean_word = ''.join(c for c in word if c.isalpha())
-            if clean_word:
-                syllables = split_into_syllables_simple(clean_word)
-                line_syllable_count += len(syllables)
-                total_words += 1
-
-        syllables_per_line.append(line_syllable_count)
-
-    return {
-        'syllables_per_line': syllables_per_line,
-        'total_words': total_words,
-    }
 
 
 @app.route('/generate_haiku', methods=['POST'])
 def generate_haiku_endpoint():
     """
-    Generate haiku on given topic and return with syllable stats.
+    Generate haiku on given theme and return with syllable stats.
     """
     data = request.get_json()
 
-    if not data or 'topic' not in data:
-        return jsonify({'error': 'Missing topic field'}), 400
+    if not data or 'theme' not in data:
+        logger.error('haiku_service // generation error: missing theme')
+        return jsonify({'error': 'Missing theme'}), 400
 
-    topic = data['topic']
+    try:
+        theme = data['theme'].strip()
 
-    haiku_text = generate_haiku(topic)
-    if not haiku_text:
-        return jsonify({'error': 'Failed to generate haiku'}), 500
+        haiku_text = generate_haiku(theme)
+        if not haiku_text:
+            return jsonify({'error': 'Generation failed'}), 500
 
-    stats = count_syllables_and_words(haiku_text)
+        stats = count_syllables_and_words(haiku_text)
 
-    return jsonify(
-        {
-            'haiku_text': haiku_text,
-            'syllables_per_line': stats['syllables_per_line'],
-            'total_words': stats['total_words'],
-            'topic': topic,
-        }
-    )
+        logger.info(
+            'haiku_service // generation ok, theme_len={}, words={}, syllables={}'.format(
+                len(theme),
+                stats['total_words'],
+                stats['syllables_per_line'],
+            )
+        )
+
+        return jsonify(
+            {
+                'haiku_text': haiku_text,
+                'syllables_per_line': stats['syllables_per_line'],
+                'total_words': stats['total_words'],
+                'theme': theme,
+            }
+        )
+    except Exception as ex:
+        logger.error(f'haiku_service // generation: unexpected error: {ex}')
+        return jsonify({'error': 'Internal server error'}), 500
 
 
 @app.route('/health', methods=['GET'])
@@ -124,7 +97,9 @@ def health():
     """
     Health check endpoint for haiku service.
     """
-    return jsonify({'status': 'ok'}), 200
+    payload = {'status': 'ok'}
+    logger.info('haiku_service // health status={}'.format(payload['status']))
+    return jsonify(payload), 200
 
 
 if __name__ == '__main__':

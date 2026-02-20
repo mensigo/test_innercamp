@@ -30,9 +30,9 @@ class TestSelectToolCallMockLLM:
             lambda payload, verbose=False: response,
         )
 
-        result = stc.select_tool_call('Что такое хайку?')
-        # TODO user_input vs question param
-        assert result == ('rag_search', {'question': 'Что такое хайку?'})
+        status, payload = stc.select_tool_call('Что такое хайку?')
+        assert status == 0
+        assert payload == ('rag_search', {'question': 'Что такое хайку?'})
 
     def test_select_tool_call_ok_without_args(self, monkeypatch):
         """Returns empty args when LLM omits arguments."""
@@ -44,8 +44,9 @@ class TestSelectToolCallMockLLM:
             lambda payload, verbose=False: response,
         )
 
-        result = stc.select_tool_call('Напиши хайку')
-        assert result == ('generate_haiku', {})
+        status, payload = stc.select_tool_call('Напиши хайку')
+        assert status == 0
+        assert payload == ('generate_haiku', {})
 
     def test_select_tool_call_without_function_call(self, monkeypatch):
         """Returns None when function_call is missing."""
@@ -57,8 +58,9 @@ class TestSelectToolCallMockLLM:
             lambda payload, verbose=False: response,
         )
 
-        result = stc.select_tool_call('Любой запрос')
-        assert result is None
+        status, payload = stc.select_tool_call('Любой запрос')
+        assert status == 1
+        assert payload is None
 
     def test_select_tool_call_llm_error(self, monkeypatch):
         """Returns None on LLM error response."""
@@ -70,8 +72,9 @@ class TestSelectToolCallMockLLM:
             lambda payload, verbose=False: response,
         )
 
-        result = stc.select_tool_call('Любой запрос')
-        assert result is None
+        status, payload = stc.select_tool_call('Любой запрос')
+        assert status == 2
+        assert payload is None
 
 
 @pytest.mark.llm
@@ -80,22 +83,16 @@ class TestSelectToolCallRealLLM:
 
     def test_select_tool_call_real_llm_rag(self):
         """Real LLM call, rag tool."""
-        result = stc.select_tool_call('Что такое хайку?')
-        if result is None:
-            assert result is None
-            return
-
-        tool_name, tool_args = result
+        status, payload = stc.select_tool_call('Что такое хайку?', debug=True)
+        assert status == 0
+        tool_name, tool_args = payload
         assert tool_name == 'rag_search'
         assert isinstance(tool_args, dict)  # TODO
 
     def test_select_tool_call_real_llm_haiku(self):
         """Real LLM call, haiku tool."""
-        result = stc.select_tool_call('Напиши хайку')
-        if result is None:
-            assert result is None
-            return
-
-        tool_name, tool_args = result
+        status, payload = stc.select_tool_call('Напиши хайку', debug=True)
+        assert status == 0
+        tool_name, tool_args = payload
         assert tool_name == 'generate_haiku'
         assert isinstance(tool_args, dict)  # TODO
