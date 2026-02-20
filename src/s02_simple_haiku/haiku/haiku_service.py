@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 def generate_haiku(theme: str, **kwargs) -> str:
     """
-    Generate Russian haiku on specified topic using LLM.
+    Generate Russian haiku on specified theme using LLM.
     """
     system_prompt = """Ты поэт, который пишет хайку на русском языке.
 

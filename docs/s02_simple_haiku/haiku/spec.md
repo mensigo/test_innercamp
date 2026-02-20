@@ -2,7 +2,7 @@
 
 ### 1. count_stats
 
-split_into_syllables_simple - подсчет логов в русском слове
+split_into_syllables_simple - подсчет слогов в русском слове
 count_syllables_and_words - подсчет статистики по тексту (число слогов, слов)
 
 ### 2. haiku_service

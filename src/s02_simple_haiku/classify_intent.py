@@ -13,6 +13,7 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
     """
     if isinstance(message_history, str):
         message_history = [{'role': 'user', 'content': message_history}]
+
     system_prompt = """Ты классификатор запросов.
 Определи, относится ли запрос к японской поэзии или генерации хайку.
 

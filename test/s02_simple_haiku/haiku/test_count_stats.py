@@ -1,5 +1,5 @@
 # ruff: noqa: RUF001
-"""Smoke tests for split_word syllable splitting."""
+"""Smoke tests for split_into_syllables_simple and count_syllables_and_words functionality."""
 
 import pytest
 

@@ -269,8 +269,8 @@ todo retries ?
 
 Дополнительно агент:
 - пишет "Хайку: < haiku text, pipe separated >" в stdout и добавляет в историю сообщений
-- пишет "#слогов построчно: < total_words >" в stdout
-- пишет "#слов итого: < syllables_per_line, '-' separated >" в stdout
+- пишет "#слогов построчно: < syllables_per_line, '-' separated >" в stdout
+- пишет "#слов итого: < total_words >" в stdout
 - проходит на Шаг 1 (запрос ввода от пользователя)
 
 

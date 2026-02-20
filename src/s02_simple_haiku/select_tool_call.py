@@ -58,7 +58,7 @@ def select_tool_call(
 Ты: rag_search({"question": "Священные цифры в старояпонском языке"})
 """
 
-    # tool desctiption
+    # tool description
 
     tools_giga = [
         {

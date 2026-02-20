@@ -247,13 +247,13 @@ def main():
             logger.info(f'[exec] {haiku_message}')
             add_to_history(message_history, 'assistant', haiku_message)
 
-            logger.info(f'[exec] #слогов построчно: {total_words}')
             syllables_msg = (
                 '-'.join(str(value) for value in syllables_per_line)
                 if syllables_per_line
                 else '?'
             )
-            logger.info(f'[exec] #слов итого: {syllables_msg}')
+            logger.info(f'[exec] #слогов построчно: {syllables_msg}')
+            logger.info(f'[exec] #слов итого: {total_words}')
             continue
 
         # fallback
