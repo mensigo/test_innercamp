@@ -19,7 +19,7 @@ class TestClassifyIntentRealLLM:
         ]
         for case in cases:
             result = classify_intent(case, temperature=config.freezing)
-            assert result, f'Failed for: {case}'
+            assert result == 0, f'Failed for: {case}'
 
     def test_ok_rag(self):
         """RAG requests."""
@@ -30,7 +30,7 @@ class TestClassifyIntentRealLLM:
         ]
         for case in cases:
             result = classify_intent(case, temperature=config.freezing)
-            assert result, f'Failed for: {case}'
+            assert result == 0, f'Failed for: {case}'
 
     def test_deny_other(self):
         """Non-haiku and non-RAG requests."""
@@ -46,21 +46,21 @@ class TestClassifyIntentRealLLM:
         ]
         for case in cases:
             result = classify_intent(case, temperature=config.freezing)
-            assert not result, f'Failed for: {case}'
+            assert result == 1, f'Failed for: {case}'
 
     def test_edge_cases(self):
         """Edge cases."""
         # Very short request
         user_input = 'хайку'
         result = classify_intent(user_input, temperature=config.freezing)
-        assert result, f'Failed for: {user_input}'
+        assert result == 0, f'Failed for: {user_input}'
 
         # Mixed language
         user_input = 'write me a haiku'
         result = classify_intent(user_input, temperature=config.freezing)
-        assert result, f'Failed for: {user_input}'
+        assert result == 0, f'Failed for: {user_input}'
 
         # TODO: Ask for details
         user_input = 'напиши стишок'
         result = classify_intent(user_input, temperature=config.freezing)
-        assert not result, f'Failed for: {user_input}'
+        assert result == 1, f'Failed for: {user_input}'

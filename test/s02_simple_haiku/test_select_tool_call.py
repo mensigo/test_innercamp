@@ -83,7 +83,7 @@ class TestSelectToolCallRealLLM:
 
     def test_select_tool_call_real_llm_rag(self):
         """Real LLM call, rag tool."""
-        status, payload = stc.select_tool_call('Что такое хайку?')
+        status, payload = stc.select_tool_call('Что такое хайку?', debug=True)
         assert status == 0
         tool_name, tool_args = payload
         assert tool_name == 'rag_search'
@@ -91,7 +91,7 @@ class TestSelectToolCallRealLLM:
 
     def test_select_tool_call_real_llm_haiku(self):
         """Real LLM call, haiku tool."""
-        status, payload = stc.select_tool_call('Напиши хайку')
+        status, payload = stc.select_tool_call('Напиши хайку', debug=True)
         assert status == 0
         tool_name, tool_args = payload
         assert tool_name == 'generate_haiku'

@@ -1,15 +1,18 @@
 from src import config, logger, post_chat_completions
 
 
-def classify_intent(message_history: list[dict], **kwargs) -> int:
+def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
     """
     Classify if user request is about Japanese poetry or haiku generation.
+    Accepts raw user text or prepared message history.
     Returns:
         0 - relevant request
         1 - irrelevant request
         2 - request error
         3 - parsing error
     """
+    if isinstance(message_history, str):
+        message_history = [{'role': 'user', 'content': message_history}]
     system_prompt = """Ты классификатор запросов.
 Определи, относится ли запрос к японской поэзии или генерации хайку.
 

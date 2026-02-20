@@ -4,16 +4,20 @@ from src import config, logger, post_chat_completions
 
 
 def select_tool_call(
-    message_history: list[dict], **kwargs
+    message_history: list[dict] | str, **kwargs
 ) -> tuple[int, tuple[str, dict] | None]:
     """
     Select tool via function calling for the given user input.
+    Accepts raw user text or prepared message history.
     Returns:
         0,(name,args) - tool selected
         1,None - no tool selected
         2,None - request error
         3,None - parsing error
     """
+    if isinstance(message_history, str):
+        message_history = [{'role': 'user', 'content': message_history}]
+
     system_prompt = """
 Твоя задача - определить, какой инструмент (tool) нужно вызвать в ответ на запрос пользователя.
 
@@ -44,6 +48,9 @@ def select_tool_call(
 
 ## Примеры взаимодействия (rag_search):
 
+Пользователь: Что такое хайку?
+Ты: rag_search({"question": "Что такое хайку?"})
+
 Пользователь: Когда был написан манъесю
 Ты: rag_search({"question": "Дата написания Манъёсю"})
 
@@ -69,9 +76,13 @@ def select_tool_call(
             },
             'few_shot_examples': [
                 {
+                    'request': 'Что такое хайку?',
+                    'params': {'question': 'Что такое хайку?'},
+                },
+                {
                     'request': 'Есть ли в старояпонском священные цифры?',
                     'params': {'question': 'Священные цифры в старояпонском языке?'},
-                }
+                },
             ],
             'return_parameters': {
                 'properties': {
