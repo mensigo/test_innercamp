@@ -3,6 +3,7 @@
 from ..config import config
 from ..logger import logger
 from .classify_intent import classify_intent
+from .execute_gen_haiku import generate_haiku
 from .execute_rag_search import answer_question
 from .select_tool_call import select_tool_call
 from .validate_tool_call import validate_tool_call
@@ -221,34 +222,45 @@ def main():
             rag_chunks_message = '\n\n'.join(rag_chunks)
             logger.debug(f'[exec] rag_chunks_message:\n{rag_chunks_message}')
 
-        # WIP
-
         if tool_name == 'generate_haiku':
-            print('[main | execute_tool] Выполнение generate_haiku')
-            theme = str(tool_args.get('theme', '')).strip()
-            print(f'[main | execute_tool] Тема: {theme}')
+            theme = str(tool_args['theme']).strip()
             result = generate_haiku(theme)
 
-            if 'error' in result and result['error']:
-                error_msg = f'Ошибка при генерации хайку: {result["error"]}'
-                print(f'[main | execute_tool] {error_msg}\n')
-                add_to_history(message_history, 'assistant', error_msg)
+            if 'error' in result:
+                haiku_error = (
+                    'Произошла чудовищная ошибка при генерации хайку.. '
+                    'Тысяча извинений! Попробуем снова?'
+                )
+                logger.info(f'[exec] {haiku_error}')
+                add_to_history(message_history, 'assistant', haiku_error)
                 continue
 
-            haiku_text = result.get('haiku_text', '')
-            if not haiku_text:
-                error_msg = 'Ошибка при генерации хайку.'
-                print(f'[main | execute_tool] {error_msg}\n')
-                add_to_history(message_history, 'assistant', error_msg)
-                continue
+            haiku_text = result['haiku_text'].strip()
+            syllables_per_line = result['syllables_per_line']
+            total_words = result['total_words']
 
-            display_haiku(haiku_text, result)
-            add_to_history(message_history, 'assistant', haiku_text)
+            haiku_message = 'Хайку: {}'.format(
+                ' | '.join(
+                    [line.strip() for line in haiku_text.splitlines() if line.strip()]
+                )
+            )
+            logger.info(f'[exec] {haiku_message}')
+            add_to_history(message_history, 'assistant', haiku_message)
+
+            logger.info(f'[exec] #слогов построчно: {total_words}')
+            syllables_msg = (
+                '-'.join(str(value) for value in syllables_per_line)
+                if syllables_per_line
+                else '?'
+            )
+            logger.info(f'[exec] #слов итого: {syllables_msg}')
             continue
 
-        response = 'Не удалось выполнить инструмент.'
-        print(f'[main | execute_tool] {response}\n')
-        add_to_history(message_history, 'assistant', response)
+        # fallback
+
+        fallback_message = 'Что-то пошло не так.. Начнем с чистого листа!'
+        logger.info(f'[exec] {fallback_message}')
+        add_to_history(message_history, 'assistant', fallback_message)
 
 
 if __name__ == '__main__':
