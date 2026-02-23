@@ -65,6 +65,37 @@ def split_into_syllables_simple(word: str) -> list[str]:
     return syllables
 
 
+def count_syllables_and_words(haiku_text: str) -> dict:
+    """
+    Count syllables per line and total words in haiku text.
+    """
+    lines = haiku_text.strip().split('\n')
+    syllables_per_line = []
+    total_words = 0
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        words = line.split()
+        line_syllable_count = 0
+
+        for word in words:
+            clean_word = ''.join(c for c in word if c.isalpha())
+            if clean_word:
+                syllables = split_into_syllables_simple(clean_word)
+                line_syllable_count += len(syllables)
+                total_words += 1
+
+        syllables_per_line.append(line_syllable_count)
+
+    return {
+        'syllables_per_line': syllables_per_line,
+        'total_words': total_words,
+    }
+
+
 if __name__ == '__main__':
     words = ['программа', 'аист', 'страна', 'обезьяна', 'поющая', 'компьютер']
     for w in words:

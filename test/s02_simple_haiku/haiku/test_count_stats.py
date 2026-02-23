@@ -1,11 +1,14 @@
 # ruff: noqa: RUF001
-"""Smoke tests for split_word syllable splitting."""
+"""Smoke tests for split_into_syllables_simple and count_syllables_and_words functionality."""
 
 import pytest
 
-from src.s02_simple_haiku.haiku.split_word import split_into_syllables_simple
+from src.s02_simple_haiku.haiku.count_stats import (
+    count_syllables_and_words,
+    split_into_syllables_simple,
+)
 
-pytestmark = pytest.mark.unit
+pytestmark = [pytest.mark.unit, pytest.mark.haiku]
 
 
 def test_split_empty_string():
@@ -71,3 +74,29 @@ def test_syllable_count_for_haiku_line():
     words = ['ветер', 'шепчет', 'мне']
     total_syllables = sum(len(split_into_syllables_simple(word)) for word in words)
     assert total_syllables == 5
+
+
+@pytest.mark.parametrize(
+    ('text', 'expected_syllables', 'expected_words'),
+    [
+        ('ветер шепчет мне\nморе в тишине\nзакат золотой', [5, 5, 5], 8),
+        (
+            'программа аист\nстрана обезьяна\nпоющая компьютер',
+            [5, 6, 7],
+            6,
+        ),
+        (
+            'море, волна!\n\nзолотой ветер',
+            [4, 5],
+            4,
+        ),
+    ],
+)
+def test_count_syllables_and_words(
+    text: str, expected_syllables: list[int], expected_words: int
+):
+    """Syllable and word stats should match splitter expectations."""
+    stats = count_syllables_and_words(text)
+
+    assert stats['syllables_per_line'] == expected_syllables
+    assert stats['total_words'] == expected_words

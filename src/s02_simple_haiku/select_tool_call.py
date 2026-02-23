@@ -4,54 +4,89 @@ from src import config, logger, post_chat_completions
 
 
 def select_tool_call(
-    message_history: list[dict], **kwargs
+    message_history: list[dict] | str, **kwargs
 ) -> tuple[int, tuple[str, dict] | None]:
     """
     Select tool via function calling for the given user input.
+    Accepts raw user text or prepared message history.
     Returns:
         0,(name,args) - tool selected
         1,None - no tool selected
         2,None - request error
         3,None - parsing error
     """
-    system_prompt = """
-Твоя задача - определить, какой инструмент (tool) нужно вызвать в ответ на запрос пользователя.
+    if isinstance(message_history, str):
+        message_history = [{'role': 'user', 'content': message_history}]
 
-Перед тобой диалог с пользователем. Определи последний запрос (intent) пользователя, затем подумай:
+    system_prompt = """
+Перед тобой диалог ассистента с пользователем. Определи последний запрос (intent) пользователя, затем подумай:
 - если пользователь спрашивает о японской поэзии, вызови rag_search;
 - если пользователь просит сгенерировать хайку/хокку (даже без указания темы), вызови generate_haiku.
 Вызывай ровно один инструмент.
 
-ВАЖНО:
+# ВАЖНО:
 - Если тема хайку не указана, все равно вызывай generate_haiku({}).
 - Если это вопрос о японской поэзии, перефразируй его в более формальный вид (это и будет question).
-"""
+- Пользователь может уточнять свой интент по ходу диалога.
+- Если ассистент уже спрашивал тему, а пользователь отвечает одним словом/фразой - это тема хайку.
+- Используй механизм function calling, НЕ пиши вызов инструмента в plain text.
+- В любом случае вызывай инструмент, даже если не уверен, что пользователь просит именно это.
 
-    if not config.insigma:
-        system_prompt += """
+---
 
-## Примеры взаимодействия (generate_haiku):
+# Примеры взаимодействия (generate_haiku)
 
+## Одна реплика
+
+1.
 Пользователь: Создай хайку о зимнем утре
-Ты: generate_haiku({"theme": "Зимнее утро"})
+Ты: вызываешь инструмент generate_haiku({"theme": "Зимнее утро"})
 
+2.
 Пользователь: Просто хайку
-Ты: generate_haiku({})
+Ты: вызываешь инструмент generate_haiku({})
 
+3.
 Пользователь: пиши хокку мне
-Ты: generate_haiku({})
+Ты: вызываешь инструмент generate_haiku({})
 
+## Несколько реплик
 
-## Примеры взаимодействия (rag_search):
+1.
+Пользователь: gen haiku
+Пользователь: winter
+Ты: вызываешь инструмент generate_haiku({"theme": "winter"})
 
+2.
+Пользователь: напиши хокку
+Пользователь: весеннее утро
+Ты: вызываешь инструмент generate_haiku({"theme": "Весеннее утро"})
+
+3.
+Пользователь: хайку скорее пиши
+Пользователь: апокалипсис
+Ты: вызываешь инструмент generate_haiku({"theme": "Апокалипсис"})
+
+---
+
+# Примеры взаимодействия (rag_search)
+
+## Одна реплика
+
+1.
+Пользователь: Что такое хайку?
+Ты: вызываешь инструмент rag_search({"question": "Что такое хайку?"})
+
+2.
 Пользователь: Когда был написан манъесю
-Ты: rag_search({"question": "Дата написания Манъёсю"})
+Ты: вызываешь инструмент rag_search({"question": "Дата написания Манъёсю"})
 
+3.
 Пользователь: Есть ли в старояпонском священные цифры?
-Ты: rag_search({"question": "Священные цифры в старояпонском языке"})
+Ты: вызываешь инструмент rag_search({"question": "Священные цифры в старояпонском языке"})
 """
 
-    # tool desctiption
+    # tool description
 
     tools_giga = [
         {
@@ -69,9 +104,13 @@ def select_tool_call(
             },
             'few_shot_examples': [
                 {
+                    'request': 'Что такое хайку?',
+                    'params': {'question': 'Что такое хайку?'},
+                },
+                {
                     'request': 'Есть ли в старояпонском священные цифры?',
                     'params': {'question': 'Священные цифры в старояпонском языке?'},
-                }
+                },
             ],
             'return_parameters': {
                 'properties': {
@@ -94,7 +133,8 @@ def select_tool_call(
         },
         {
             'name': 'generate_haiku',
-            'description': 'Генерация хайку по теме',
+            'description': 'Генерация хайку по теме. Типовой запрос пользователя имеет вид:'
+            ' напиши/пиши/сгенери/сгенерируй/дай хайку/хокку/хоку/стих/стишок [о/об/про/просто/на тему...]',
             'parameters': {
                 'type': 'object',
                 'properties': {
@@ -153,12 +193,14 @@ def select_tool_call(
             *message_history,
         ],
         'tools': tools,
+        'tool_choice': 'required',
         'temperature': config.freezing,
     }
     if config.insigma:
         payload['function_call'] = None  # 'auto'
         payload['functions'] = tools
         del payload['tools']
+        del payload['tool_choice']
 
     # request
 

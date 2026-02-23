@@ -64,7 +64,7 @@ def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
             return (
                 False,
                 {
-                    'message': 'Не совсем понял вопрос. Просьба переформулировать.',
+                    'message': 'Не совсем понял тему хайку. Какую использовать?',
                     'param': 'theme',
                     'reason': 'missing',
                 },
@@ -76,7 +76,7 @@ def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
             return (
                 False,
                 {
-                    'message': 'Не совсем понял вопрос. Просьба переформулировать.',
+                    'message': 'Не совсем понял тему хайку. Какую использовать?',
                     'param': 'theme',
                     'reason': 'empty',
                 },
