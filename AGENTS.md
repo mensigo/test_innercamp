@@ -9,3 +9,6 @@
 For s02_simple_haiku module consider rules:
 - if spec tells to log smth to stdout, it means using logger.info with specific prefix
 - though spec describes required logging, implemented code may log more details (especially in debug level)
+
+Testing:
+- use `uv run pytest <file>` command to run any tests if needed

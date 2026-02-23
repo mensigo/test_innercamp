@@ -227,10 +227,16 @@ def main():
             result = generate_haiku(theme)
 
             if 'error' in result:
-                haiku_error = (
-                    'Произошла чудовищная ошибка при генерации хайку.. '
-                    'Тысяча извинений! Попробуем снова?'
-                )
+                if result.get('error') == 'Health check failed':
+                    haiku_error = (
+                        'Небольшие трудности при генерации хайку.. '
+                        'Инженеры уже работают над запуском сервиса..'
+                    )
+                else:
+                    haiku_error = (
+                        'Произошла чудовищная ошибка при генерации хайку.. '
+                        'Тысяча извинений! Попробуем снова?'
+                    )
                 logger.info(f'[exec] {haiku_error}')
                 add_to_history(message_history, 'assistant', haiku_error)
                 continue

@@ -32,7 +32,7 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
 
         if verbose:
-            logger.debug('post/ans: {} | {}', response, response.text)
+            logger.debug('post/ans: {} | {}', response, response.text.strip())
 
         response.raise_for_status()
         return response.json()
