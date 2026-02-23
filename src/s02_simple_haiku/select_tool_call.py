@@ -133,7 +133,7 @@ def select_tool_call(
         },
         {
             'name': 'generate_haiku',
-            'description': 'Генерация хайку по теме. Типовые запросы пользователя:'
+            'description': 'Генерация хайку по теме. Типовой запрос пользователя имеет вид:'
             ' напиши/пиши/сгенери/сгенерируй/дай хайку/хокку/хоку/стих/стишок [о/об/про/просто/на тему...]',
             'parameters': {
                 'type': 'object',
@@ -193,12 +193,14 @@ def select_tool_call(
             *message_history,
         ],
         'tools': tools,
+        'tool_choice': 'required',
         'temperature': config.freezing,
     }
     if config.insigma:
         payload['function_call'] = None  # 'auto'
         payload['functions'] = tools
         del payload['tools']
+        del payload['tool_choice']
 
     # request
 

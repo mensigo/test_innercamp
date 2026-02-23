@@ -10,6 +10,7 @@ from .validate_tool_call import validate_tool_call
 
 EXIT_COMMANDS = {'/exit', '/quit', '/q', 'exit', 'quit', 'q'}
 HELP_COMMANDS = {'/help', 'help', '?'}
+CLEAR_COMMANDS = {'/clear'}
 
 VERBOSE = config.debug
 CONTEXT_HIST_LIMIT = 10
@@ -29,6 +30,7 @@ def print_help():
     - генерировать хайку по теме
     
     Для выхода введите: /exit, /quit или /q
+    Очистить историю: /clear
     Команда справки: /help
     """)
 
@@ -73,7 +75,7 @@ def display_haiku(haiku: str, stats: dict | None):
     print('[display_haiku | result] -------------\n')
 
 
-def main():
+def main() -> list[dict]:
     """
     Main interactive loop for the haiku agent.
     """
@@ -102,6 +104,11 @@ def main():
         if lowered in HELP_COMMANDS:
             logger.debug({'state': 'AgentHelp'})
             print_help()
+            continue
+
+        if lowered in CLEAR_COMMANDS:
+            message_history.clear()
+            logger.info('[main] История сообщений очищена.')
             continue
 
         add_to_history(message_history, 'user', user_input)
@@ -166,7 +173,7 @@ def main():
             tool_name, tool_args = select_tool
             select_message = f'Выбран инструмент {tool_name} с параметрами {tool_args}'
             logger.info(f'[select] {select_message}\n')
-            add_to_history(message_history, 'assistant', select_message)
+            # add_to_history(message_history, 'assistant', select_message)
 
         # validate
 
@@ -196,10 +203,16 @@ def main():
             rag_result = answer_question(question, top_k=RAG_TOP_K)
 
             if 'error' in rag_result:
-                rag_message = (
-                    'Произошла чудовищная ошибка при запросе на RAG сервис.. '
-                    'Тысяча извинений! Попробуем снова?'
-                )
+                if rag_result.get('error') == 'Health check failed':
+                    rag_message = (
+                        'Небольшие трудности при запросе на RAG сервис.. '
+                        'Инженеры уже работают над запуском сервиса..'
+                    )
+                else:
+                    rag_message = (
+                        'Произошла чудовищная ошибка при запросе на RAG сервис.. '
+                        'Тысяча извинений! Попробуем снова?'
+                    )
                 logger.info(f'[exec] {rag_message}')
                 add_to_history(message_history, 'assistant', rag_message)
                 continue
@@ -267,6 +280,8 @@ def main():
         fallback_message = 'Что-то пошло не так.. Начнем с чистого листа!'
         logger.info(f'[exec] {fallback_message}')
         add_to_history(message_history, 'assistant', fallback_message)
+
+    return message_history
 
 
 if __name__ == '__main__':

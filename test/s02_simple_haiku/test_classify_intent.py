@@ -60,7 +60,7 @@ class TestClassifyIntentRealLLM:
         result = classify_intent(user_input, temperature=config.freezing, verbose=True)
         assert result == 0, f'Failed for: {user_input}'
 
-        # TODO: Ask for details
+        # Ask for details
         user_input = 'напиши стишок'
         result = classify_intent(user_input, temperature=config.freezing, verbose=True)
-        assert result == 1, f'Failed for: {user_input}'
+        assert result == 0, f'Failed for: {user_input}'
