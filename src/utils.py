@@ -4,9 +4,6 @@ import requests
 
 from src import config, logger
 
-DEFAULT_CHAT_MODEL = 'GigaChat-2-Max'
-DEFAULT_EMBEDDINGS_MODEL = 'Embeddings'
-
 
 def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     """
@@ -16,7 +13,7 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     url = f'{config.gigachat_base_url}/chat/completions'
 
     if 'model' not in payload:
-        payload['model'] = DEFAULT_CHAT_MODEL
+        payload['model'] = config.default_model
 
     try:
         if verbose:
@@ -54,7 +51,7 @@ def post_embeddings(payload: dict, verbose: bool = False) -> dict:
     url = f'{config.gigachat_base_url}/embeddings'
 
     if 'model' not in payload:
-        payload['model'] = DEFAULT_EMBEDDINGS_MODEL
+        payload['model'] = config.default_embedding_model
 
     try:
         if verbose:

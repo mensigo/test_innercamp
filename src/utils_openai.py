@@ -4,9 +4,6 @@ import requests
 
 from src import config, logger
 
-DEFAULT_MODEL = 'openai/gpt-3.5-turbo'
-DEFAULT_EMBEDDING_MODEL = 'openai/text-embedding-3-small'
-
 
 def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     """
@@ -16,7 +13,7 @@ def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
     url = f'{config.openrouter_base_url}/chat/completions'
 
     if 'model' not in payload:
-        payload['model'] = DEFAULT_MODEL
+        payload['model'] = config.default_model
 
     headers = {
         'Authorization': f'Bearer {config.openrouter_key}',
@@ -55,7 +52,7 @@ def post_embeddings(payload: dict, verbose: bool = False) -> dict:
     url = f'{config.openrouter_base_url}/embeddings'
 
     if 'model' not in payload:
-        payload['model'] = DEFAULT_EMBEDDING_MODEL
+        payload['model'] = config.default_embedding_model
 
     headers = {
         'Authorization': f'Bearer {config.openrouter_key}',

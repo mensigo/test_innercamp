@@ -11,5 +11,5 @@ For s02_simple_haiku module consider rules:
 - though spec describes required logging, implemented code may log more details (especially in debug level)
 
 Testing:
-- remember to activate python `.venv` before running any tests
+- make sure to activate python `.venv` before running any tests
 - use `uv run pytest <file>` command to run any tests if needed

@@ -34,7 +34,7 @@ where = ["."]
 include = ["src*"]
 
 [tool.pytest.ini_options]
-testpaths = ["test"]
+testpaths = ["test_agent"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -48,6 +48,8 @@ markers = [
     "llm: test api calls (check prompts)",
     "rag: test rag related functions",
     "haiku: test haiku related functions",
+    "step1: step1 stage tests",
+    "step2: step2 stage tests",
 ]
 
 [tool.ruff]
