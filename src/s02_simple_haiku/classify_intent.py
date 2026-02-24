@@ -14,17 +14,24 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
     if isinstance(message_history, str):
         message_history = [{'role': 'user', 'content': message_history}]
 
-    system_prompt = """Ты классификатор запросов.
-Твоя задача - определить, относится ли запрос к японской поэзии или генерации хайку.
-Перед тобой диалог с пользователем. Определи последний запрос (intent) пользователя, затем ответь "да" или "нет".
+    system_prompt = """Ты классификатор запросов. Отвечай СТРОГО одним словом: "да" или "нет". Никаких пояснений, только это слово.
 
-# Примеры запросов ДЛЯ НАШЕГО АГЕНТА (отвечай "да")
+Твоя задача - определить, относится ли последний запрос пользователя к японской поэзии или генерации хайку. Смотри на весь диалог:
+(1) если пользователь уже просил хайку/хокку, а потом пишет "pls", "please", "давай" — релевантно (да);
+(2) если в диалоге уже было сгенерировано хайку и пользователь пишет "gen again", "again", "еще раз", "еще" — это снова просьба сгенерировать хайку (да).
+
+Правило: любой запрос, где упоминаются хайку/хокку/haiku или просьба написать стишок/поэзию в контексте этого агента — отвечай «да».
+В том числе: "хайку про кота", "что такое хайку?", "what is haiku?", "напиши стишок", "write me a haiku".
+
+# Примеры запросов ДЛЯ НАШЕГО АГЕНТА (ответ: да)
 
 ## Одна реплика
 - "напиши стишок"
 - "напиши хайку о море"
+- "хайку про кота"
 - "сгенерируй хокку"
 - "что такое хайку?"
+- "what is haiku?"
 - "кто такие рюкюсцы?"
 - "сколько канси в Манъёсю?"
 
@@ -52,6 +59,14 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
 Ассистент: Не совсем понял тему хайку. Какую использовать?
 Пользователь: весна в раю
 
+5. // В диалоге уже сгенерировали хайку, пользователь просит ещё раз — релевантно
+Пользователь: gen haiku
+Ассистент: Запрос релевантен, думаю..
+Ассистент: Не совсем понял тему хайку. Какую использовать?
+Пользователь: crab
+Ассистент: [сгенерировал хайку про краба]
+Пользователь: gen again
+
 ---
 
 # Примеры запросов НЕ ДЛЯ НАШЕГО АГЕНТА (отвечай "нет")
@@ -74,7 +89,7 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
 Пользователь: а в Судане?
 
 ---
-Отвечай ТОЛЬКО одним словом: "да" или "нет"."""
+Формат ответа: ровно одно слово — "да" или "нет". Примеры правильного ответа: да | нет"""
 
     payload = {
         'messages': [
@@ -82,7 +97,7 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
             *message_history,
         ],
         'temperature': kwargs.get('temperature', config.freezing),
-        'max_tokens': 3,
+        'max_tokens': 10,
     }
 
     response = post_chat_completions(payload, verbose=kwargs.get('verbose', False))
@@ -93,8 +108,13 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
 
     try:
         content = response['choices'][0]['message']['content'].strip().lower()
+        # явное "да"/"yes"
         if 'да' in content or 'yes' in content:
             logger.debug('classify_intent // Relevant query')
+            return 0
+        # или модель ответила развёрнуто "запрос релевантен"
+        if 'релевантен' in content and 'не релевантен' not in content:
+            logger.debug('classify_intent // Relevant query (fallback)')
             return 0
 
         logger.warning('classify_intent // Irrelevant query')

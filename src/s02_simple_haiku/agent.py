@@ -46,36 +46,7 @@ def add_to_history(history: list[dict], role: str, content: str):
         history[:] = history[-CONTEXT_HIST_LIMIT:]
 
 
-def display_haiku(haiku: str, stats: dict | None):
-    """
-    Display haiku with syllable counts if available.
-    """
-    if not haiku:
-        print('[display_haiku | error] Не удалось сгенерировать хайку.')
-        return
-
-    lines = haiku.strip().split('\n')
-    print('[display_haiku | result] \n--- Хайку ---')
-
-    if stats and 'syllables_per_line' in stats:
-        syllable_counts = stats['syllables_per_line']
-        for i, line in enumerate(lines):
-            if i < len(syllable_counts):
-                print(f'[display_haiku | result] {line.strip()} ({syllable_counts[i]})')
-            else:
-                print(f'[display_haiku | result] {line.strip()}')
-
-        total_syllables = sum(syllable_counts) if syllable_counts else 0
-        print(f'[display_haiku | result] \nВсего слогов: {total_syllables}')
-        print(f'[display_haiku | result] Всего слов: {stats.get("total_words", "?")}')
-    else:
-        for line in lines:
-            print(f'[display_haiku | result] {line.strip()}')
-
-    print('[display_haiku | result] -------------\n')
-
-
-def main() -> list[dict]:
+def main() -> dict:
     """
     Main interactive loop for the haiku agent.
     """
@@ -124,24 +95,24 @@ def main() -> list[dict]:
 
         if clf_result == 3:
             clf_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
-            logger.info(f'[cls] {clf_message}\n')
+            logger.info(f'[cls] {clf_message}')
             break
 
         if clf_result == 2:
             clf_message = 'Ошибка при запросе LLM, завершаюсь..'
-            logger.info(f'[cls] {clf_message}\n')
+            logger.info(f'[cls] {clf_message}')
             break
 
         if clf_result == 1:
             clf_message = 'Запрос не связан с функционалом агента.'
-            logger.info(f'[cls] {clf_message}\n')
+            logger.info(f'[cls] {clf_message}')
             print_help()
             add_to_history(message_history, 'assistant', clf_message)
             continue
 
         if clf_result == 0:
             clf_message = 'Запрос релевантен, думаю..'
-            logger.info(f'[cls] {clf_message}\n')
+            logger.info(f'[cls] {clf_message}')
             add_to_history(message_history, 'assistant', clf_message)
 
         # select
@@ -153,26 +124,26 @@ def main() -> list[dict]:
 
         if select_result == 3:
             select_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
-            logger.info(f'[select] {select_message}\n')
+            logger.info(f'[select] {select_message}')
             break
 
         if select_result == 2:
             select_message = 'Ошибка при запросе LLM, завершаюсь..'
-            logger.info(f'[select] {select_message}\n')
+            logger.info(f'[select] {select_message}')
             break
 
         if select_result == 1:
             select_message = (
                 'Не удалось определить инструмент. Просьба переформулировать запрос.'
             )
-            logger.info(f'[select] {select_message}\n')
+            logger.info(f'[select] {select_message}')
             add_to_history(message_history, 'assistant', select_message)
             continue
 
         if select_result == 0:
             tool_name, tool_args = select_tool
             select_message = f'Выбран инструмент {tool_name} с параметрами {tool_args}'
-            logger.info(f'[select] {select_message}\n')
+            logger.info(f'[select] {select_message}')
             # add_to_history(message_history, 'assistant', select_message)
 
         # validate
@@ -184,7 +155,7 @@ def main() -> list[dict]:
 
         if valid_result:
             valid_message = valid_info['message']
-            logger.info(f'[valid] {valid_message}\n')
+            logger.info(f'[valid] {valid_message}')
             add_to_history(message_history, 'assistant', valid_message)
 
         else:
@@ -281,7 +252,7 @@ def main() -> list[dict]:
         logger.info(f'[exec] {fallback_message}')
         add_to_history(message_history, 'assistant', fallback_message)
 
-    return message_history
+    return {'iteration': iteration, 'message_history': message_history}
 
 
 if __name__ == '__main__':
