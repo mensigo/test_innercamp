@@ -31,7 +31,7 @@ class TestSelectToolCallMockLLM:
         )
 
         status, payload = stc.select_tool_call('Что такое хайку?')
-        assert status == 0
+        assert status == 200
         assert payload == ('rag_search', {'question': 'Что такое хайку?'})
 
     def test_select_tool_call_ok_without_args(self, monkeypatch):
@@ -45,7 +45,7 @@ class TestSelectToolCallMockLLM:
         )
 
         status, payload = stc.select_tool_call('Напиши хайку')
-        assert status == 0
+        assert status == 200
         assert payload == ('generate_haiku', {})
 
     def test_select_tool_call_without_function_call(self, monkeypatch):
@@ -59,7 +59,7 @@ class TestSelectToolCallMockLLM:
         )
 
         status, payload = stc.select_tool_call('Любой запрос')
-        assert status == 1
+        assert status == 201
         assert payload is None
 
     def test_select_tool_call_llm_error(self, monkeypatch):
@@ -73,7 +73,7 @@ class TestSelectToolCallMockLLM:
         )
 
         status, payload = stc.select_tool_call('Любой запрос')
-        assert status == 2
+        assert status == 203
         assert payload is None
 
 
@@ -94,7 +94,7 @@ class TestSelectToolCallRealLLM:
         Real LLM call, one-string input, rag_search tool.
         """
         status, payload = stc.select_tool_call(user_input, verbose=True)
-        assert status == 0
+        assert status == 200
         tool_name, tool_args = payload
         assert tool_name == 'rag_search'
         assert isinstance(tool_args, dict)
@@ -125,7 +125,7 @@ class TestSelectToolCallRealLLM:
         Real LLM call, multi-message history, rag_search tool.
         """
         status, payload = stc.select_tool_call(history, verbose=True)
-        assert status == 0
+        assert status == 200
         tool_name, tool_args = payload
         assert tool_name == 'rag_search'
         assert isinstance(tool_args, dict)
@@ -143,7 +143,7 @@ class TestSelectToolCallRealLLM:
     def test_select_tool_call_real_llm_haiku_no_theme(self, user_input: str):
         """Real LLM call, haiku tool, one-string input, no explicit theme."""
         status, payload = stc.select_tool_call(user_input, verbose=True)
-        assert status == 0
+        assert status == 200
         tool_name, tool_args = payload
         assert tool_name == 'generate_haiku'
         assert isinstance(tool_args, dict)
@@ -163,7 +163,7 @@ class TestSelectToolCallRealLLM:
     ):
         """Real LLM call, haiku tool, one-string input, explicit theme."""
         status, payload = stc.select_tool_call(user_input, verbose=True)
-        assert status == 0
+        assert status == 200
         tool_name, tool_args = payload
         assert tool_name == 'generate_haiku'
         assert isinstance(tool_args, dict)

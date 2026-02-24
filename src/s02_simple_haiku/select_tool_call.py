@@ -10,10 +10,10 @@ def select_tool_call(
     Select tool via function calling for the given user input.
     Accepts raw user text or prepared message history.
     Returns:
-        0,(name,args) - tool selected
-        1,None - no tool selected
-        2,None - request error
-        3,None - parsing error
+        200,(name,args) - tool selected
+        201,None - no tool selected
+        202,None - parsing error
+        203,None - request error
     """
     if isinstance(message_history, str):
         message_history = [{'role': 'user', 'content': message_history}]
@@ -210,7 +210,7 @@ def select_tool_call(
 
     if 'error' in response:
         logger.critical('select_tool_call // LLM Error: {}'.format(response['error']))
-        return 2, None
+        return 203, None
 
     try:
         message = response['choices'][0]['message']
@@ -220,7 +220,7 @@ def select_tool_call(
             name = function_call.get('name')
             arguments = json.loads(function_call.get('arguments', '{}'))
             logger.debug('select_tool_call // Selection OK')
-            return 0, (name, arguments)
+            return 200, (name, arguments)
 
         tool_calls = message.get('tool_calls')
         if tool_calls:
@@ -228,13 +228,13 @@ def select_tool_call(
             name = tool_call['function'].get('name')
             arguments = json.loads(tool_call['function'].get('arguments', '{}'))
             logger.debug('select_tool_call // Selection OK')
-            return 0, (name, arguments)
+            return 200, (name, arguments)
 
         logger.warning('select_tool_call // LLM Selection Fail')
-        return 1, None
+        return 201, None
 
     except (KeyError, IndexError, TypeError, json.JSONDecodeError) as ex:
         logger.opt(exception=True).critical(
             f'select_tool_call // LLM Response Parse Error: {ex}'
         )
-        return 3, None
+        return 202, None

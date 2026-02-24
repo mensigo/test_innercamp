@@ -62,13 +62,13 @@ def test_message_history_trimmed_by_context_limit(
     limit: int,
 ):
     """
-    With custom CONTEXT_HIST_LIMIT, classify mocked to return 1 (irrelevant),
+    With custom CONTEXT_HIST_LIMIT, classify mocked to return 101 (irrelevant),
     stack user+assistant messages and assert history is cut to at most limit.
     """
     monkeypatch.setattr(agent, 'CONTEXT_HIST_LIMIT', limit)
 
     def fake_classify(message_history: list, **kwargs) -> int:
-        return 1  # irrelevant -> only add user + assistant, no select/execute
+        return 101  # irrelevant -> only add user + assistant, no select/execute
 
     monkeypatch.setattr(
         'src.s02_simple_haiku.agent.classify_intent',

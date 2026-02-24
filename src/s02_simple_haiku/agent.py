@@ -80,6 +80,7 @@ def main() -> dict:
         if lowered in CLEAR_COMMANDS:
             message_history.clear()
             logger.info('[main] История сообщений очищена.')
+            logger.debug({'state': 'AgentClear'})
             continue
 
         add_to_history(message_history, 'user', user_input)
@@ -93,24 +94,24 @@ def main() -> dict:
 
         clf_result = classify_intent(message_history, verbose=VERBOSE)
 
-        if clf_result == 3:
-            clf_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
-            logger.info(f'[cls] {clf_message}')
-            break
-
-        if clf_result == 2:
+        if clf_result == 103:
             clf_message = 'Ошибка при запросе LLM, завершаюсь..'
             logger.info(f'[cls] {clf_message}')
             break
 
-        if clf_result == 1:
+        if clf_result == 102:
+            clf_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
+            logger.info(f'[cls] {clf_message}')
+            break
+
+        if clf_result == 101:
             clf_message = 'Запрос не связан с функционалом агента.'
             logger.info(f'[cls] {clf_message}')
             print_help()
             add_to_history(message_history, 'assistant', clf_message)
             continue
 
-        if clf_result == 0:
+        if clf_result == 100:
             clf_message = 'Запрос релевантен, думаю..'
             logger.info(f'[cls] {clf_message}')
             add_to_history(message_history, 'assistant', clf_message)
@@ -122,17 +123,17 @@ def main() -> dict:
 
         select_result, select_tool = select_tool_call(message_history, verbose=VERBOSE)
 
-        if select_result == 3:
-            select_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
-            logger.info(f'[select] {select_message}')
-            break
-
-        if select_result == 2:
+        if select_result == 203:
             select_message = 'Ошибка при запросе LLM, завершаюсь..'
             logger.info(f'[select] {select_message}')
             break
 
-        if select_result == 1:
+        if select_result == 202:
+            select_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
+            logger.info(f'[select] {select_message}')
+            break
+
+        if select_result == 201:
             select_message = (
                 'Не удалось определить инструмент. Просьба переформулировать запрос.'
             )
@@ -140,7 +141,7 @@ def main() -> dict:
             add_to_history(message_history, 'assistant', select_message)
             continue
 
-        if select_result == 0:
+        if select_result == 200:
             tool_name, tool_args = select_tool
             select_message = f'Выбран инструмент {tool_name} с параметрами {tool_args}'
             logger.info(f'[select] {select_message}')

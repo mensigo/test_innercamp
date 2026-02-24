@@ -6,10 +6,10 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
     Classify if user request is about Japanese poetry or haiku generation.
     Accepts raw user text or prepared message history.
     Returns:
-        0 - relevant request
-        1 - irrelevant request
-        2 - request error
-        3 - parsing error
+        100 - relevant request
+        101 - irrelevant request
+        102 - parsing error
+        103 - request error
     """
     if isinstance(message_history, str):
         message_history = [{'role': 'user', 'content': message_history}]
@@ -104,24 +104,24 @@ def classify_intent(message_history: list[dict] | str, **kwargs) -> int:
 
     if 'error' in response:
         logger.critical('classify_intent // LLM Error: {}'.format(response['error']))
-        return 2
+        return 103
 
     try:
         content = response['choices'][0]['message']['content'].strip().lower()
         # явное "да"/"yes"
         if 'да' in content or 'yes' in content:
             logger.debug('classify_intent // Relevant query')
-            return 0
+            return 100
         # или модель ответила развёрнуто "запрос релевантен"
         if 'релевантен' in content and 'не релевантен' not in content:
             logger.debug('classify_intent // Relevant query (fallback)')
-            return 0
+            return 100
 
         logger.warning('classify_intent // Irrelevant query')
-        return 1
+        return 101
 
     except (KeyError, IndexError) as ex:
         logger.opt(exception=True).critical(
             f'classify_intent // LLM Response Parse Error: {ex}'
         )
-        return 3
+        return 102
