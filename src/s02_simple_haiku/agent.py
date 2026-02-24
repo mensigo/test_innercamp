@@ -137,25 +137,27 @@ def agent(message_history: list[dict]) -> dict:
     result['select']['message'] = select_message
     append_message(f'[select] {select_message}')
 
-    # validate
-    raise Exception('Not implemented')
+    # step3: validate
 
-    result['messages'].append('[valid] Валидирую инструмент..')
+    append_message('[valid] Валидирую инструмент..')
     result['last_state'] = 'validate'
     logger.debug(result)
 
     valid_result, valid_info = validate_tool_call(tool_name, tool_args)
 
-    result['valid']['code'] = 1 if valid_result else 0
-    result['valid']['message'] = valid_info['message']
+    result['validate']['code'] = 1 if valid_result else 0
+    result['validate']['message'] = valid_info['message']
 
-    if valid_result:
-        logger.info(f'[valid] {valid_info["message"]}')
-        messages.append(valid_info['message'])
-    else:
-        logger.info(f'[valid] {valid_info["message"]}')
-        messages.append(valid_info['message'])
+    if not valid_result:
+        result['validate']['param'] = valid_info.get('param')
+        result['validate']['reason'] = valid_info.get('reason')
+        append_message(valid_info['message'])
         return result
+
+    logger.info(f'[validate] {valid_info["message"]}')
+    append_message(valid_info['message'])
+
+    raise Exception('Not implemented')
 
     logger.info('[exec] Выполняю инструмент..')
     logger.debug({'state': 'AgentExecute'})

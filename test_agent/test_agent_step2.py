@@ -57,7 +57,6 @@ def test_agent_select_no_tool_stops_flow(monkeypatch: pytest.MonkeyPatch):
 
     message_history = [
         {'role': 'user', 'content': 'напиши хайку'},
-        {'role': 'assistant', 'content': 'Запрос релевантен, думаю..'},
     ]
 
     result = agent(message_history)
@@ -144,7 +143,6 @@ def test_agent_select_parse_error_stops_flow(monkeypatch: pytest.MonkeyPatch):
 
     message_history = [
         {'role': 'user', 'content': 'напиши хайку'},
-        {'role': 'assistant', 'content': 'Запрос релевантен, думаю..'},
     ]
 
     result = agent(message_history)
@@ -210,7 +208,6 @@ def test_agent_select_request_error_branch(monkeypatch: pytest.MonkeyPatch):
 
     message_history = [
         {'role': 'user', 'content': 'напиши хайку'},
-        {'role': 'assistant', 'content': 'Запрос релевантен, думаю..'},
     ]
 
     result = agent(message_history)

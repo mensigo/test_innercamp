@@ -13,8 +13,8 @@ class Config:
         self.debug = self._parse_bool(os.getenv('DEBUG'), default=False)
         self.insigma = self._parse_bool(os.getenv('INSIGMA'), default=False)
         self.flask_debug = self._parse_bool(os.getenv('FLASK_DEBUG'), default=False)
-        self.tool_rag_port = self._parse_port(os.getenv('TOOL_RAG_PORT'), 8091)
-        self.tool_haiku_port = self._parse_port(os.getenv('TOOL_HAIKU_PORT'), 8092)
+        self.tool_rag_port = self._parse_int(os.getenv('TOOL_RAG_PORT'), 8091)
+        self.tool_haiku_port = self._parse_int(os.getenv('TOOL_HAIKU_PORT'), 8092)
 
         if self.insigma:
             self.default_model = os.getenv('GIGACHAT_DEFAULT_CHAT_MODEL')
@@ -42,6 +42,13 @@ class Config:
 
         self.freezing = 1e-3
 
+        self.tool_rag_max_question_len = self._parse_int(
+            os.getenv('TOOL_RAG_MAX_QUESTION_LEN'), 30
+        )
+        self.tool_haiku_max_theme_len = self._parse_int(
+            os.getenv('TOOL_HAIKU_MAX_THEME_LEN'), 20
+        )
+
         self.validate()
 
     def _parse_bool(self, value: str | None, default: bool) -> bool:
@@ -52,16 +59,16 @@ class Config:
             return default
         return value.strip().lower() in {'1', 'true', 'yes'}
 
-    def _parse_port(self, value: str | None, default: int) -> int:
+    def _parse_int(self, value: str | None, default: int) -> int:
         """
-        Parse port env values.
+        Parse integer env values.
         """
         if not value:
             return default
         try:
             return int(value)
         except ValueError as ex:
-            raise ValueError(f'Invalid port value: {value}') from ex
+            raise ValueError(f'Invalid int value: {value}') from ex
 
     def validate(self):
         required_vars = (

@@ -1,9 +1,7 @@
 """Tool call validation logic."""
 
+from ..config import config
 from ..logger import logger
-
-MAX_QUESTION_LEN = 30
-MAX_THEME_LEN = 20
 
 
 def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
@@ -37,7 +35,7 @@ def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
                 },
             )
 
-        if len(question) > MAX_QUESTION_LEN:
+        if len(question) > config.tool_rag_max_question_len:
             logger.warning('validate_tool_call // Too Long Param: rag_search::question')
             return (
                 False,
@@ -82,7 +80,7 @@ def validate_tool_call(tool_name: str, tool_args: dict) -> tuple[bool, dict]:
                 },
             )
 
-        if len(theme) > MAX_THEME_LEN:
+        if len(theme) > config.tool_haiku_max_theme_len:
             logger.warning(
                 'validate_tool_call // Too Long Param: generate_haiku::theme'
             )
