@@ -2,6 +2,7 @@
 
 import copy
 import pprint
+from typing import Generator
 
 from ..config import config
 from ..logger import logger
@@ -17,7 +18,6 @@ CLEAR_COMMANDS = {'/clear'}
 
 VERBOSE = config.debug
 CONTEXT_HIST_LIMIT = 10
-MAX_CLARIFICATION_RETRIES = 3
 
 RAG_TOP_K = 2
 
@@ -49,7 +49,7 @@ def add_to_history(history: list[dict], role: str, content: str):
         history[:] = history[-CONTEXT_HIST_LIMIT:]
 
 
-def agent(message_history: list[dict]) -> dict:
+def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
     """
     Run classify/select/validate/execute pipeline for current history.
     """
@@ -63,15 +63,15 @@ def agent(message_history: list[dict]) -> dict:
         'select': {},
         'validate': {},
         'execute': {},
-        # 'message_history': message_history,
     }
 
-    def append_message(message: str):
+    def add_message(message: str) -> str:
         result['messages'].append(message)
+        return message
 
     # step1: classify
 
-    append_message('[cls] Анализирую релевантность запроса..')
+    yield add_message('[cls] Анализирую релевантность запроса..')
     result['last_state'] = 'classify'
     logger.debug(result)
 
@@ -81,30 +81,31 @@ def agent(message_history: list[dict]) -> dict:
     if clf_result == 103:
         clf_message = 'Ошибка при запросе LLM, завершаюсь..'
         result['classify']['message'] = clf_message
-        append_message(f'[cls] {clf_message}')
+        yield add_message(f'[cls] {clf_message}')
         return result
 
     if clf_result == 102:
         clf_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
         result['classify']['message'] = clf_message
-        append_message(f'[cls] {clf_message}')
+        yield add_message(f'[cls] {clf_message}')
         return result
 
     if clf_result == 101:
         clf_message = 'Запрос не связан с функционалом агента.'
         result['classify']['message'] = clf_message
-        append_message(f'[cls] {clf_message}')
+        add_to_history(message_history, 'assistant', clf_message)
+        yield add_message(f'[cls] {clf_message}')
         return result
 
     if clf_result == 100:
         clf_message = 'Запрос релевантен, думаю..'
         result['classify']['message'] = clf_message
-        append_message(f'[cls] {clf_message}')
         add_to_history(message_history, 'assistant', clf_message)
+        yield add_message(f'[cls] {clf_message}')
 
-    # step2: select
+    # WIP step2: select
 
-    append_message('[select] Выбираю подходящий инструмент..')
+    yield add_message('[select] Выбираю подходящий инструмент..')
     result['last_state'] = 'select'
     logger.debug(result)
 
@@ -117,13 +118,13 @@ def agent(message_history: list[dict]) -> dict:
     if select_result == 203:
         select_message = 'Ошибка при запросе LLM, завершаюсь..'
         result['select']['message'] = select_message
-        append_message(f'[select] {select_message}')
+        yield add_message(f'[select] {select_message}')
         return result
 
     if select_result == 202:
         select_message = 'Ошибка при разборе ответа LLM, завершаюсь..'
         result['select']['message'] = select_message
-        append_message(f'[select] {select_message}')
+        yield add_message(f'[select] {select_message}')
         return result
 
     if select_result == 201:
@@ -131,17 +132,17 @@ def agent(message_history: list[dict]) -> dict:
             'Не удалось определить инструмент. Просьба переформулировать запрос.'
         )
         result['select']['message'] = select_message
-        append_message(f'[select] {select_message}')
+        yield add_message(f'[select] {select_message}')
         return result
 
     tool_name, tool_args = select_tool
     select_message = f'Выбран инструмент {tool_name} с параметрами {tool_args}'
     result['select']['message'] = select_message
-    append_message(f'[select] {select_message}')
+    yield add_message(f'[select] {select_message}')
 
     # step3: validate
 
-    append_message('[valid] Валидирую инструмент..')
+    yield add_message('[valid] Валидирую инструмент..')
     result['last_state'] = 'validate'
     logger.debug(result)
 
@@ -153,15 +154,15 @@ def agent(message_history: list[dict]) -> dict:
     if not valid_result:
         result['validate']['param'] = valid_info.get('param')
         result['validate']['reason'] = valid_info.get('reason')
-        append_message(valid_info['message'])
+        yield add_message(valid_info['message'])
         return result
 
     logger.info(f'[validate] {valid_info["message"]}')
-    append_message(valid_info['message'])
+    yield add_message(valid_info['message'])
 
     # step4: execute
 
-    append_message('[exec] Выполняю инструмент..')
+    yield add_message('[exec] Выполняю инструмент..')
     result['last_state'] = 'execute'
     logger.debug(result)
 
@@ -183,14 +184,14 @@ def agent(message_history: list[dict]) -> dict:
             result['execute']['code'] = 401
             result['execute']['message'] = rag_message
             logger.info(f'[execute] {rag_message}')
-            append_message(rag_message)
+            yield add_message(rag_message)
             return result
 
         rag_message = 'Ответ RAG: {}'.format(rag_result['answer'])
         result['execute']['code'] = 400
         result['execute']['message'] = rag_message
         logger.info(f'[execute] {rag_message}')
-        append_message(rag_message)
+        yield add_message(rag_message)
 
         rag_titles_message = 'Заголовки топ-{} документов: {}'.format(
             RAG_TOP_K, ', '.join(rag_result['chunk_title_list'])
@@ -227,7 +228,7 @@ def agent(message_history: list[dict]) -> dict:
             result['execute']['code'] = 401
             result['execute']['message'] = haiku_message
             logger.info(f'[execute] {haiku_message}')
-            append_message(haiku_message)
+            yield add_message(haiku_message)
             return result
 
         haiku_text = result_haiku['haiku_text'].strip()
@@ -242,7 +243,7 @@ def agent(message_history: list[dict]) -> dict:
         result['execute']['code'] = 400
         result['execute']['message'] = haiku_message
         logger.info(f'[execute] {haiku_message}')
-        append_message(haiku_message)
+        yield add_message(haiku_message)
 
         syllables_msg = (
             '-'.join(str(value) for value in syllables_per_line)
@@ -259,8 +260,21 @@ def agent(message_history: list[dict]) -> dict:
     result['execute']['code'] = 402
     result['execute']['message'] = fallback_message
     logger.info(f'[execute] {fallback_message}')
-    append_message(fallback_message)
+    yield add_message(fallback_message)
     return result
+
+
+def agent(message_history: list[dict]) -> dict:
+    """
+    Run agent pipeline and return final result.
+    """
+    generator = agent_yield(message_history)
+    try:
+        while True:
+            msg = next(generator)
+            logger.info(msg)
+    except StopIteration as ex:
+        return ex.value or {}
 
 
 def main():
@@ -272,12 +286,12 @@ def main():
 
     while True:
         if iteration == 0:
-            logger.debug({'state': 'AgentStart'})
-            logger.info(get_help_message())
+            logger.debug('AgentStart')
+            print(get_help_message())
         else:
-            logger.debug({'state': 'AgentRestart'})
+            logger.debug('AgentRestart')
 
-        user_input = input('Введите запрос: ').strip()
+        user_input = input('user: ').strip()
         iteration += 1
 
         if not user_input:
@@ -285,19 +299,19 @@ def main():
 
         lowered = user_input.lower()
         if lowered in EXIT_COMMANDS:
-            logger.info('[main] До свидания!')
-            logger.debug({'state': 'AgentEnd'})
+            logger.debug('AgentEnd')
+            print('assistant: До свидания!')
             break
 
         if lowered in HELP_COMMANDS:
-            logger.debug({'state': 'AgentHelp'})
-            logger.info(get_help_message())
+            logger.debug('AgentHelp')
+            print(get_help_message())
             continue
 
         if lowered in CLEAR_COMMANDS:
             message_history.clear()
-            logger.info('[main] История сообщений очищена.')
-            logger.debug({'state': 'AgentClear'})
+            logger.debug('AgentClear')
+            print('assistant: История сообщений очищена.')
             continue
 
         add_to_history(message_history, 'user', user_input)
@@ -316,19 +330,15 @@ def main():
             or validate_info.get('code') != 300
             or execute_info.get('code') != 400
         ):
-            logger.info(
+            print(
                 '[main] Неожиданный результат (завершаюсь):\n{}'.format(
                     pprint.pformat(agent_result, width=120, sort_dicts=False)
                 )
             )
-            logger.debug({'state': 'AgentEnd'})
+            logger.debug('AgentEnd')
             break
 
         add_to_history(message_history, 'assistant', agent_result['execute']['message'])
-
-        # for msg in messages:
-        #     add_to_history(message_history, 'assistant', msg)
-        #     logger.info(msg)
 
 
 if __name__ == '__main__':
