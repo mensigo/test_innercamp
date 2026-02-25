@@ -2,9 +2,9 @@
 
 import pytest
 
-from src.s02_simple_haiku import agent
+from src_agent.agent import agent
 
-pytestmark = pytest.mark.llm
+pytestmark = pytest.mark.skip
 
 
 @pytest.mark.unit

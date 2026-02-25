@@ -1,6 +1,7 @@
 """CLI agent with intent classification and tool routing."""
 
 import copy
+import pprint
 
 from ..config import config
 from ..logger import logger
@@ -303,22 +304,27 @@ def main():
 
         agent_result = agent(message_history)
 
-        clf_info = agent_result.get('classify') or {}
+        classify_info = agent_result.get('classify') or {}
         select_info = agent_result.get('select') or {}
-        valid_info = agent_result.get('valid') or {}
-        exec_info = agent_result.get('execute') or {}
+        validate_info = agent_result.get('validate') or {}
+        execute_info = agent_result.get('execute') or {}
         think_messages = agent_result.get('messages') or []
 
-        # override
-        message_history = agent_result['message_history']
-
         if (
-            clf_info.get('code') != 100
+            classify_info.get('code') != 100
             or select_info.get('code') != 200
-            or valid_info.get('code') != 300
-            or exec_info.get('code') != 400
+            or validate_info.get('code') != 300
+            or execute_info.get('code') != 400
         ):
+            logger.info(
+                '[main] Неожиданный результат (завершаюсь):\n{}'.format(
+                    pprint.pformat(agent_result, width=120, sort_dicts=False)
+                )
+            )
+            logger.debug({'state': 'AgentEnd'})
             break
+
+        add_to_history(message_history, 'assistant', agent_result['execute']['message'])
 
         # for msg in messages:
         #     add_to_history(message_history, 'assistant', msg)
