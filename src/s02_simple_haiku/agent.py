@@ -2,6 +2,8 @@
 
 import copy
 import pprint
+from pathlib import Path
+import readline
 from typing import Generator
 
 from ..config import config
@@ -20,6 +22,8 @@ VERBOSE = config.debug
 CONTEXT_HIST_LIMIT = 10
 
 RAG_TOP_K = 2
+# Store CLI history next to agent.log in repo root
+HISTORY_PATH = Path('agent_history.txt')
 
 
 def get_help_message():
@@ -47,6 +51,61 @@ def add_to_history(history: list[dict], role: str, content: str):
     # Обрезаем до последних CONTEXT_HIST_LIMIT сообщений
     if len(history) > CONTEXT_HIST_LIMIT:
         history[:] = history[-CONTEXT_HIST_LIMIT:]
+
+
+def load_cli_history():
+    """
+    Load CLI history from file for readline support.
+    """
+    try:
+        if HISTORY_PATH.exists():
+            # Let readline parse its own format (avoids \040 escapes)
+            readline.read_history_file(HISTORY_PATH)
+
+            # Deduplicate consecutive duplicates after load
+            items = [
+                readline.get_history_item(i)
+                for i in range(1, readline.get_current_history_length() + 1)
+            ]
+            deduped: list[str] = []
+            for item in items:
+                if item and (not deduped or deduped[-1] != item):
+                    deduped.append(item)
+
+            readline.clear_history()
+            for item in deduped:
+                readline.add_history(item)
+
+            persist_cli_history()
+    except Exception as ex:
+        logger.warning(f'agent // Failed to load history: {ex}')
+
+
+def persist_cli_history():
+    """
+    Persist current readline history to file.
+    """
+    try:
+        HISTORY_PATH.parent.mkdir(parents=True, exist_ok=True)
+        readline.write_history_file(HISTORY_PATH)
+    except Exception as ex:
+        logger.warning(f'agent // Failed to save history: {ex}')
+
+
+def append_cli_history(entry: str):
+    """
+    Append entry to readline history and persist.
+    """
+    if not entry:
+        return
+    try:
+        last_idx = readline.get_current_history_length()
+        last_entry = readline.get_history_item(last_idx) if last_idx else None
+        if last_entry != entry:
+            readline.add_history(entry)
+            persist_cli_history()
+    except Exception as ex:
+        logger.warning(f'agent // Failed to append history: {ex}')
 
 
 def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
@@ -294,96 +353,112 @@ def main():
     message_history: list[dict] = []
     iteration = 0
 
-    while True:
-        if iteration == 0:
-            logger.debug('AgentStart')
-            print(get_help_message())
-        else:
-            logger.debug('AgentRestart')
+    load_cli_history()
+    readline.set_history_length(50)
 
-        user_input = input('user: ').strip()
-        iteration += 1
+    try:
+        while True:
+            if iteration == 0:
+                logger.debug('AgentStart')
+                print(get_help_message())
+            else:
+                logger.debug('AgentRestart')
 
-        if not user_input:
-            continue
+            user_input = input('user: ').strip()
+            iteration += 1
 
-        lowered = user_input.lower()
-        if lowered in EXIT_COMMANDS:
-            logger.debug('AgentEnd')
-            print('assistant: До свидания!')
-            break
+            if not user_input:
+                continue
 
-        if lowered in HELP_COMMANDS:
-            logger.debug('AgentHelp')
-            print(get_help_message())
-            continue
+            append_cli_history(user_input)
 
-        if lowered in CLEAR_COMMANDS:
-            message_history.clear()
-            logger.debug('AgentClear')
-            print('assistant: История сообщений очищена.')
-            continue
+            lowered = user_input.lower()
+            if lowered in EXIT_COMMANDS:
+                logger.debug('AgentEnd')
+                print('assistant: До свидания!')
+                break
 
-        add_to_history(message_history, 'user', user_input)
+            if lowered in HELP_COMMANDS:
+                logger.debug('AgentHelp')
+                print(get_help_message())
+                continue
 
-        agent_result = agent(message_history)
+            if lowered in CLEAR_COMMANDS:
+                message_history.clear()
+                readline.clear_history()
+                try:
+                    HISTORY_PATH.unlink(missing_ok=True)
+                except Exception as ex:
+                    logger.warning(f'agent // Failed to delete history file: {ex}')
+                persist_cli_history()
+                logger.debug('AgentClear')
+                print('assistant: История сообщений очищена.')
+                continue
 
-        classify_info = agent_result.get('classify') or {}
-        select_info = agent_result.get('select') or {}
-        validate_info = agent_result.get('validate') or {}
-        execute_info = agent_result.get('execute') or {}
-        think_messages = agent_result.get('messages') or []
+            add_to_history(message_history, 'user', user_input)
 
-        # if irrelevant query, print message and reask user
-        if (
-            agent_result.get('last_state') == 'classify'
-            and classify_info.get('code') == 101
-        ):
-            print(f'assistant: {agent_result["classify"]["message"]}')
-            add_to_history(
-                message_history, 'assistant', agent_result['classify']['message']
-            )
-            continue
+            agent_result = agent(message_history)
 
-        # if tool not determined, print message and reask user
-        if (
-            agent_result.get('last_state') == 'select'
-            and select_info.get('code') == 201
-        ):
-            print(f'assistant: {agent_result["select"]["message"]}')
-            add_to_history(
-                message_history, 'assistant', agent_result['select']['message']
-            )
-            continue
+            classify_info = agent_result.get('classify') or {}
+            select_info = agent_result.get('select') or {}
+            validate_info = agent_result.get('validate') or {}
+            execute_info = agent_result.get('execute') or {}
+            think_messages = agent_result.get('messages') or []
 
-        # if validation failed, print message and reask user
-        if (
-            agent_result.get('last_state') == 'validate'
-            and validate_info.get('code') == 301
-        ):
-            print(f'assistant: {agent_result["validate"]["message"]}')
-            add_to_history(
-                message_history, 'assistant', agent_result['validate']['message']
-            )
-            continue
-
-        # if unexpected result, print message and exit
-        if (
-            classify_info.get('code') != 100
-            or select_info.get('code') != 200
-            or validate_info.get('code') != 300
-            or execute_info.get('code') != 400
-        ):
-            print(
-                'assistant: Неожиданный результат (завершаюсь):\n{}'.format(
-                    pprint.pformat(agent_result, width=120, sort_dicts=False)
+            # if irrelevant query, print message and reask user
+            if (
+                agent_result.get('last_state') == 'classify'
+                and classify_info.get('code') == 101
+            ):
+                print(f'assistant: {agent_result["classify"]["message"]}')
+                add_to_history(
+                    message_history, 'assistant', agent_result['classify']['message']
                 )
-            )
-            logger.debug('AgentEnd')
-            break
+                continue
 
-        print(f'assistant: {agent_result["execute"]["message"]}')
-        add_to_history(message_history, 'assistant', agent_result['execute']['message'])
+            # if tool not determined, print message and reask user
+            if (
+                agent_result.get('last_state') == 'select'
+                and select_info.get('code') == 201
+            ):
+                print(f'assistant: {agent_result["select"]["message"]}')
+                add_to_history(
+                    message_history, 'assistant', agent_result['select']['message']
+                )
+                continue
+
+            # if validation failed, print message and reask user
+            if (
+                agent_result.get('last_state') == 'validate'
+                and validate_info.get('code') == 301
+            ):
+                print(f'assistant: {agent_result["validate"]["message"]}')
+                add_to_history(
+                    message_history, 'assistant', agent_result['validate']['message']
+                )
+                continue
+
+            # if unexpected result, print message and exit
+            if (
+                classify_info.get('code') != 100
+                or select_info.get('code') != 200
+                or validate_info.get('code') != 300
+                or execute_info.get('code') != 400
+            ):
+                print(
+                    'assistant: Неожиданный результат (завершаюсь):\n{}'.format(
+                        pprint.pformat(agent_result, width=120, sort_dicts=False)
+                    )
+                )
+                logger.debug('AgentEnd')
+                break
+
+            print(f'assistant: {agent_result["execute"]["message"]}')
+            add_to_history(
+                message_history, 'assistant', agent_result['execute']['message']
+            )
+    finally:
+        persist_cli_history()
 
 
 if __name__ == '__main__':

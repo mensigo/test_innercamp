@@ -17,3 +17,4 @@ wheels/
 certs
 patches
 *.log
+*.txt
