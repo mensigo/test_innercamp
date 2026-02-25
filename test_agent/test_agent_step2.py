@@ -39,7 +39,7 @@ def test_agent_select_no_tool_stops_flow(monkeypatch: pytest.MonkeyPatch):
                     self.status_code = 200
 
                 def __repr__(self) -> str:
-                    return f'DummyResponse(status_code={self.status_code}, payload={self._payload})'
+                    return f'DummyResponse(status_code={self.status_code})'
 
                 def raise_for_status(self):
                     return None
@@ -104,7 +104,7 @@ def test_agent_select_parse_error_stops_flow(monkeypatch: pytest.MonkeyPatch):
                     self.status_code = 200
 
                 def __repr__(self) -> str:
-                    return f'DummyResponse(status_code={self.status_code}, payload={self._payload})'
+                    return f'DummyResponse(status_code={self.status_code})'
 
                 def raise_for_status(self):
                     return None
@@ -190,7 +190,7 @@ def test_agent_select_request_error_branch(monkeypatch: pytest.MonkeyPatch):
                     self.status_code = 200
 
                 def __repr__(self) -> str:
-                    return f'DummyResponse(status_code={self.status_code}, payload={self._payload})'
+                    return f'DummyResponse(status_code={self.status_code})'
 
                 def raise_for_status(self):
                     return None

@@ -52,6 +52,9 @@ def test_agent_validate_theme_too_long(monkeypatch: pytest.MonkeyPatch):
                 def json(self) -> dict:
                     return self._payload
 
+                def __repr__(self) -> str:
+                    return f'DummyResponse(status_code={self.status_code})'
+
             return DummyResponse(
                 {
                     'choices': [
@@ -98,7 +101,7 @@ def test_agent_validate_theme_too_long(monkeypatch: pytest.MonkeyPatch):
     assert result.get('select', {}).get('code') == 200  # tool selected
 
     validate = result.get('validate', {})
-    assert validate.get('code') == 0
+    assert validate.get('code') == 301
     assert validate.get('param') == 'theme'
     assert validate.get('reason') == 'long'
     assert (
@@ -138,6 +141,9 @@ def test_agent_validate_theme_missing(monkeypatch: pytest.MonkeyPatch):
 
                 def json(self) -> dict:
                     return self._payload
+
+                def __repr__(self) -> str:
+                    return f'DummyResponse(status_code={self.status_code})'
 
             return DummyResponse(
                 {
@@ -179,7 +185,7 @@ def test_agent_validate_theme_missing(monkeypatch: pytest.MonkeyPatch):
     assert result.get('select', {}).get('code') == 200
 
     validate = result.get('validate', {})
-    assert validate.get('code') == 0
+    assert validate.get('code') == 301
     assert validate.get('param') == 'theme'
     assert validate.get('reason') == 'missing'
     assert validate.get('message') == 'Не совсем понял тему хайку. Какую использовать?'
@@ -216,6 +222,9 @@ def test_agent_validate_theme_empty(monkeypatch: pytest.MonkeyPatch):
                 def json(self) -> dict:
                     return self._payload
 
+                def __repr__(self) -> str:
+                    return f'DummyResponse(status_code={self.status_code})'
+
             return DummyResponse(
                 {
                     'choices': [
@@ -224,7 +233,7 @@ def test_agent_validate_theme_empty(monkeypatch: pytest.MonkeyPatch):
                                 'function_call': {
                                     'name': 'generate_haiku',
                                     'arguments': jsonlib.dumps(
-                                        {'theme': '   '}, ensure_ascii=False
+                                        {'theme': ''}, ensure_ascii=False
                                     ),
                                 },
                                 'tool_calls': [
@@ -258,7 +267,7 @@ def test_agent_validate_theme_empty(monkeypatch: pytest.MonkeyPatch):
     assert result.get('select', {}).get('code') == 200
 
     validate = result.get('validate', {})
-    assert validate.get('code') == 0
+    assert validate.get('code') == 301
     assert validate.get('param') == 'theme'
     assert validate.get('reason') == 'empty'
     assert validate.get('message') == 'Не совсем понял тему хайку. Какую использовать?'

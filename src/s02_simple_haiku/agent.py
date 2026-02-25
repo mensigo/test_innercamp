@@ -52,7 +52,7 @@ def agent(message_history: list[dict]) -> dict:
     """
     Run classify/select/validate/execute pipeline for current history.
     """
-    logger.debug('agent // start')
+    logger.debug('-' * 20 + ' agent // start ' + '-' * 20)
     message_history = copy.deepcopy(message_history)
 
     result: dict = {
@@ -62,6 +62,7 @@ def agent(message_history: list[dict]) -> dict:
         'select': {},
         'validate': {},
         'execute': {},
+        # 'message_history': message_history,
     }
 
     def append_message(message: str):
@@ -145,7 +146,7 @@ def agent(message_history: list[dict]) -> dict:
 
     valid_result, valid_info = validate_tool_call(tool_name, tool_args)
 
-    result['validate']['code'] = 1 if valid_result else 0
+    result['validate']['code'] = 300 if valid_result else 301
     result['validate']['message'] = valid_info['message']
 
     if not valid_result:
@@ -157,10 +158,11 @@ def agent(message_history: list[dict]) -> dict:
     logger.info(f'[validate] {valid_info["message"]}')
     append_message(valid_info['message'])
 
-    raise Exception('Not implemented')
+    # step4: execute
 
-    logger.info('[exec] Выполняю инструмент..')
-    logger.debug({'state': 'AgentExecute'})
+    append_message('[exec] Выполняю инструмент..')
+    result['last_state'] = 'execute'
+    logger.debug(result)
 
     if tool_name == 'rag_search':
         question = tool_args['question'].strip()
@@ -177,22 +179,23 @@ def agent(message_history: list[dict]) -> dict:
                     'Произошла чудовищная ошибка при запросе на RAG сервис.. '
                     'Тысяча извинений! Попробуем снова?'
                 )
-            result['execute']['code'] = 0
+            result['execute']['code'] = 401
             result['execute']['message'] = rag_message
-            logger.info(f'[exec] {rag_message}')
-            messages.append(rag_message)
+            logger.info(f'[execute] {rag_message}')
+            append_message(rag_message)
             return result
 
         rag_message = 'Ответ RAG: {}'.format(rag_result['answer'])
-        result['execute']['code'] = 1
+        result['execute']['code'] = 400
         result['execute']['message'] = rag_message
-        logger.info(f'[exec] {rag_message}')
-        messages.append(rag_message)
+        logger.info(f'[execute] {rag_message}')
+        append_message(rag_message)
 
         rag_titles_message = 'Заголовки топ-{} документов: {}'.format(
             RAG_TOP_K, ', '.join(rag_result['chunk_title_list'])
         )
-        logger.info(f'[exec] {rag_titles_message}')
+        result['execute']['rag_titles_message'] = rag_message
+        logger.info(f'[execute] {rag_titles_message}')
 
         rag_chunks = [
             f'[{i + 1}] {title}\n---{text}'
@@ -201,7 +204,8 @@ def agent(message_history: list[dict]) -> dict:
             )
         ]
         rag_chunks_message = '\n\n'.join(rag_chunks)
-        logger.debug(f'[exec] rag_chunks_message:\n{rag_chunks_message}')
+        result['execute']['rag_chunks_message'] = rag_chunks_message
+        logger.debug(f'[execute] rag_chunks_message:\n{rag_chunks_message}')
         return result
 
     if tool_name == 'generate_haiku':
@@ -210,19 +214,19 @@ def agent(message_history: list[dict]) -> dict:
 
         if 'error' in result_haiku:
             if result_haiku.get('error') == 'Health check failed':
-                haiku_error = (
+                haiku_message = (
                     'Небольшие трудности при генерации хайку.. '
                     'Инженеры уже работают над запуском сервиса..'
                 )
             else:
-                haiku_error = (
+                haiku_message = (
                     'Произошла чудовищная ошибка при генерации хайку.. '
                     'Тысяча извинений! Попробуем снова?'
                 )
-            result['execute']['code'] = 0
-            result['execute']['message'] = haiku_error
-            logger.info(f'[exec] {haiku_error}')
-            messages.append(haiku_error)
+            result['execute']['code'] = 401
+            result['execute']['message'] = haiku_message
+            logger.info(f'[execute] {haiku_message}')
+            append_message(haiku_message)
             return result
 
         haiku_text = result_haiku['haiku_text'].strip()
@@ -234,25 +238,27 @@ def agent(message_history: list[dict]) -> dict:
                 [line.strip() for line in haiku_text.splitlines() if line.strip()]
             )
         )
-        result['execute']['code'] = 1
+        result['execute']['code'] = 400
         result['execute']['message'] = haiku_message
-        logger.info(f'[exec] {haiku_message}')
-        messages.append(haiku_message)
+        logger.info(f'[execute] {haiku_message}')
+        append_message(haiku_message)
 
         syllables_msg = (
             '-'.join(str(value) for value in syllables_per_line)
             if syllables_per_line
             else '?'
         )
-        logger.info(f'[exec] #слогов построчно: {syllables_msg}')
-        logger.info(f'[exec] #слов итого: {total_words}')
+        result['execute']['syllables_msg'] = syllables_msg
+        result['execute']['total_words'] = total_words
+        logger.info(f'[execute] #слогов построчно: {syllables_msg}')
+        logger.info(f'[execute] #слов итого: {total_words}')
         return result
 
     fallback_message = 'Что-то пошло не так.. Начнем с чистого листа!'
-    result['execute']['code'] = 0
+    result['execute']['code'] = 402
     result['execute']['message'] = fallback_message
-    logger.info(f'[exec] {fallback_message}')
-    messages.append(fallback_message)
+    logger.info(f'[execute] {fallback_message}')
+    append_message(fallback_message)
     return result
 
 
@@ -301,17 +307,22 @@ def main():
         select_info = agent_result.get('select') or {}
         valid_info = agent_result.get('valid') or {}
         exec_info = agent_result.get('execute') or {}
-        messages = agent_result.get('messages') or []
+        think_messages = agent_result.get('messages') or []
 
-        if clf_info.get('code') in {103, 102}:
+        # override
+        message_history = agent_result['message_history']
+
+        if (
+            clf_info.get('code') != 100
+            or select_info.get('code') != 200
+            or valid_info.get('code') != 300
+            or exec_info.get('code') != 400
+        ):
             break
 
-        if select_info.get('code') in {203, 202}:
-            break
-
-        for msg in messages:
-            add_to_history(message_history, 'assistant', msg)
-            logger.info(msg)
+        # for msg in messages:
+        #     add_to_history(message_history, 'assistant', msg)
+        #     logger.info(msg)
 
 
 if __name__ == '__main__':

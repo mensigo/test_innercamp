@@ -51,6 +51,8 @@ markers = [
     "step1: step1 stage tests",
     "step2: step2 stage tests",
     "step3: step3 stage tests",
+    "step4: step4 stage tests",
+    "happy: end-to-end happy path tests",
 ]
 
 [tool.ruff]
