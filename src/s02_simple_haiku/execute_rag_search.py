@@ -50,6 +50,7 @@ def answer_question(
         return {
             'answer': data['answer'],
             'chunk_title_list': data['chunk_title_list'],
+            'chunk_source_list': data['chunk_source_list'],
             'chunk_texts': data['chunk_texts'],
         }
 

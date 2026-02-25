@@ -1,6 +1,4 @@
 .venv
 .env
 
-tasks
-
 uv.lock

@@ -93,7 +93,7 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
     if clf_result == 101:
         clf_message = 'Запрос не связан с функционалом агента.'
         result['classify']['message'] = clf_message
-        add_to_history(message_history, 'assistant', clf_message)
+        # add_to_history(message_history, 'assistant', clf_message)
         yield add_message(f'[cls] {clf_message}')
         return result
 
@@ -103,7 +103,7 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
         add_to_history(message_history, 'assistant', clf_message)
         yield add_message(f'[cls] {clf_message}')
 
-    # WIP step2: select
+    # step2: select
 
     yield add_message('[select] Выбираю подходящий инструмент..')
     result['last_state'] = 'select'
@@ -132,6 +132,7 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
             'Не удалось определить инструмент. Просьба переформулировать запрос.'
         )
         result['select']['message'] = select_message
+        # add_to_history(message_history, 'assistant', select_message)
         yield add_message(f'[select] {select_message}')
         return result
 
@@ -154,11 +155,10 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
     if not valid_result:
         result['validate']['param'] = valid_info.get('param')
         result['validate']['reason'] = valid_info.get('reason')
-        yield add_message(valid_info['message'])
+        yield add_message(f'[valid] {valid_info["message"]}')
         return result
 
-    logger.info(f'[validate] {valid_info["message"]}')
-    yield add_message(valid_info['message'])
+    yield add_message('[valid] ' + valid_info['message'])
 
     # step4: execute
 
@@ -183,31 +183,42 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
                 )
             result['execute']['code'] = 401
             result['execute']['message'] = rag_message
-            logger.info(f'[execute] {rag_message}')
-            yield add_message(rag_message)
+            yield add_message(f'[exec] {rag_message}')
             return result
 
         rag_message = 'Ответ RAG: {}'.format(rag_result['answer'])
         result['execute']['code'] = 400
         result['execute']['message'] = rag_message
-        logger.info(f'[execute] {rag_message}')
-        yield add_message(rag_message)
+        yield add_message(f'[exec] {rag_message}')
+
+        chunk_titles = rag_result.get('chunk_title_list') or []
+        chunk_sources = rag_result.get('chunk_source_list') or []
 
         rag_titles_message = 'Заголовки топ-{} документов: {}'.format(
-            RAG_TOP_K, ', '.join(rag_result['chunk_title_list'])
+            RAG_TOP_K, ', '.join(chunk_titles)
         )
-        result['execute']['rag_titles_message'] = rag_message
-        logger.info(f'[execute] {rag_titles_message}')
+        result['execute']['rag_titles_message'] = rag_titles_message
+        logger.debug(f'[exec] {rag_titles_message}')
+        yield add_message('[exec] ' + rag_titles_message)
+
+        if chunk_sources:
+            rag_sources_message = 'Файлы топ-{} документов: {}'.format(
+                RAG_TOP_K, ', '.join(chunk_sources)
+            )
+            result['execute']['rag_sources_message'] = rag_sources_message
+            logger.debug(f'[exec] {rag_sources_message}')
+            yield add_message('[exec] ' + rag_sources_message)
 
         rag_chunks = [
-            f'[{i + 1}] {title}\n---{text}'
+            f'[{i + 1}] Title: {title} | File: {chunk_sources[i] if i < len(chunk_sources) else "?"}\nText: {text}'
             for i, (title, text) in enumerate(
-                zip(rag_result['chunk_title_list'], rag_result['chunk_texts'])
+                zip(chunk_titles, rag_result['chunk_texts'])
             )
         ]
-        rag_chunks_message = '\n\n'.join(rag_chunks)
+        rag_chunks_message = '-----\n' + '\n-----\n'.join(rag_chunks)
         result['execute']['rag_chunks_message'] = rag_chunks_message
-        logger.debug(f'[execute] rag_chunks_message:\n{rag_chunks_message}')
+        logger.debug('[exec] rag_chunks_message:\n' + rag_chunks_message)
+        yield add_message('[exec] ' + rag_chunks_message)
         return result
 
     if tool_name == 'generate_haiku':
@@ -227,8 +238,7 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
                 )
             result['execute']['code'] = 401
             result['execute']['message'] = haiku_message
-            logger.info(f'[execute] {haiku_message}')
-            yield add_message(haiku_message)
+            yield add_message(f'[exec] {haiku_message}')
             return result
 
         haiku_text = result_haiku['haiku_text'].strip()
@@ -242,8 +252,8 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
         )
         result['execute']['code'] = 400
         result['execute']['message'] = haiku_message
-        logger.info(f'[execute] {haiku_message}')
-        yield add_message(haiku_message)
+        logger.debug(f'[exec] {haiku_message}')
+        yield add_message('[exec] ' + haiku_message)
 
         syllables_msg = (
             '-'.join(str(value) for value in syllables_per_line)
@@ -252,15 +262,15 @@ def agent_yield(message_history: list[dict]) -> Generator[str, None, dict]:
         )
         result['execute']['syllables_msg'] = syllables_msg
         result['execute']['total_words'] = total_words
-        logger.info(f'[execute] #слогов построчно: {syllables_msg}')
-        logger.info(f'[execute] #слов итого: {total_words}')
+        logger.debug(f'[exec] #слогов построчно: {syllables_msg}')
+        logger.debug(f'[exec] #слов итого: {total_words}')
         return result
 
     fallback_message = 'Что-то пошло не так.. Начнем с чистого листа!'
     result['execute']['code'] = 402
     result['execute']['message'] = fallback_message
-    logger.info(f'[execute] {fallback_message}')
-    yield add_message(fallback_message)
+    logger.debug(f'[exec] {fallback_message}')
+    yield add_message('[exec] ' + fallback_message)
     return result
 
 
@@ -324,6 +334,40 @@ def main():
         execute_info = agent_result.get('execute') or {}
         think_messages = agent_result.get('messages') or []
 
+        # if irrelevant query, print message and reask user
+        if (
+            agent_result.get('last_state') == 'classify'
+            and classify_info.get('code') == 101
+        ):
+            print(f'assistant: {agent_result["classify"]["message"]}')
+            add_to_history(
+                message_history, 'assistant', agent_result['classify']['message']
+            )
+            continue
+
+        # if tool not determined, print message and reask user
+        if (
+            agent_result.get('last_state') == 'select'
+            and select_info.get('code') == 201
+        ):
+            print(f'assistant: {agent_result["select"]["message"]}')
+            add_to_history(
+                message_history, 'assistant', agent_result['select']['message']
+            )
+            continue
+
+        # if validation failed, print message and reask user
+        if (
+            agent_result.get('last_state') == 'validate'
+            and validate_info.get('code') == 301
+        ):
+            print(f'assistant: {agent_result["validate"]["message"]}')
+            add_to_history(
+                message_history, 'assistant', agent_result['validate']['message']
+            )
+            continue
+
+        # if unexpected result, print message and exit
         if (
             classify_info.get('code') != 100
             or select_info.get('code') != 200
@@ -331,13 +375,14 @@ def main():
             or execute_info.get('code') != 400
         ):
             print(
-                '[main] Неожиданный результат (завершаюсь):\n{}'.format(
+                'assistant: Неожиданный результат (завершаюсь):\n{}'.format(
                     pprint.pformat(agent_result, width=120, sort_dicts=False)
                 )
             )
             logger.debug('AgentEnd')
             break
 
+        print(f'assistant: {agent_result["execute"]["message"]}')
         add_to_history(message_history, 'assistant', agent_result['execute']['message'])
 
 

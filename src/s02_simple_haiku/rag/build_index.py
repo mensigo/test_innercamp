@@ -14,7 +14,7 @@ from src import post_embeddings
 from .logger import logger
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / 'data'
+DATA_DIR = BASE_DIR.parent / 'data'
 INDEX_PATH = BASE_DIR / 'faiss.index'
 
 DEFAULT_MAX_CHUNK_CHARS = 800

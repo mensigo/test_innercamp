@@ -148,6 +148,7 @@ def search():
         chunks = search_chunks(question, top_k)
         answer = answer_with_context(question, chunks)
         chunk_titles = [chunk.title for chunk in chunks]
+        chunk_sources = [chunk.source for chunk in chunks]
         chunk_texts = [chunk.text for chunk in chunks]
 
         logger.info(
@@ -157,6 +158,7 @@ def search():
             {
                 'answer': answer,
                 'chunk_title_list': chunk_titles,
+                'chunk_source_list': chunk_sources,
                 'chunk_texts': chunk_texts,
                 'question': question,
                 'top_k': top_k,

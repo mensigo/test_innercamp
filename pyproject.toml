@@ -46,13 +46,13 @@ markers = [
     "integration: test multiple components interaction",
     "unit: test single components (fast, with mocks)",
     "llm: test api calls (check prompts)",
-    "rag: test rag related functions",
-    "haiku: test haiku related functions",
-    "step1: step1 stage tests",
-    "step2: step2 stage tests",
-    "step3: step3 stage tests",
-    "step4: step4 stage tests",
-    "happy: end-to-end happy path tests",
+    # "rag: test rag related functions",
+    # "haiku: test haiku related functions",
+    # "step1: step1 stage tests",
+    # "step2: step2 stage tests",
+    # "step3: step3 stage tests",
+    # "step4: step4 stage tests",
+    # "happy: end-to-end happy path tests",
 ]
 
 [tool.ruff]

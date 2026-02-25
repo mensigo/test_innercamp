@@ -19,4 +19,3 @@
 - если `verbose=True`, то в лог пишется `payload` (до запроса) и `response` (после успешного запроса) на уровне debug
 - если при запросе происходит ошибка, то в лог пишется стектрейс ошибки на уровне error/critical и возвращается словарь вида `{"error": "< exception text >"}`
 - если запрос проходит успешно, возвращается стандартный ответ вида [result_embeddings.json](../meta/gigachat/result_embeddings.json)
-
