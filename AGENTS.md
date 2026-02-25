@@ -6,9 +6,12 @@
 
 # Spec/implementation moments
 
-For s02_simple_haiku module consider rules:
+Spec rules:
 - if spec tells to log smth to stdout, it means using logger.info with specific prefix
 - though spec describes required logging, implemented code may log more details (especially in debug level)
+
+Prompt rules:
+- write prompts in russian language
 
 Testing:
 - make sure to activate python `.venv` before running any tests

@@ -34,7 +34,7 @@ where = ["."]
 include = ["src*"]
 
 [tool.pytest.ini_options]
-testpaths = ["test_agent"]
+testpaths = ["test_learn"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -46,6 +46,7 @@ markers = [
     "integration: test multiple components interaction",
     "unit: test single components (fast, with mocks)",
     "llm: test api calls (check prompts)",
+    "e2e: end-to-end tests through real agent flow",
     # "rag: test rag related functions",
     # "haiku: test haiku related functions",
     # "step1: step1 stage tests",
