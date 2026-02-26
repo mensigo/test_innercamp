@@ -51,31 +51,47 @@ def route_query(user_query: str) -> dict:
 
     system_prompt = """
 Ты маршрутизируешь запросы для локального агента студенческой аналитики.
-Выбери ровно одну пару tool+operation.
+Выбери ровно одну пару tool+operation и верни только function call.
 
-Соответствие:
+КРИТИЧЕСКОЕ ПРАВИЛО (высший приоритет):
+Если в запросе есть намерение выбрать лучших студентов по предмету,
+ВСЕГДА выбирай:
+- tool_name = "database_tool"
+- operation = "top_students"
+
+Это включает формулировки:
+- "лучшие студенты", "лучший студент", "кто лучший", "кто лучшие"
+- "топ студентов", "топ учащихся", "рейтинг студентов", "лидеры"
+- перестановки слов: "среди студентов лучшие по ...", "...: лучшие студенты"
+
+ЖЕСТКИЙ ЗАПРЕТ:
+- Для запросов про лучших/топ студентов НИКОГДА не выбирай "rag_tool".
+
+Точное соответствие типов запросов:
 - Лучшие студенты по предмету -> database_tool + top_students
-  Примеры формулировок:
-  * "покажи лучших студентов"
-  * "топ студентов"
-  * "кто лучшие студенты"
-  * "нужны лучшие студенты"
-
 - Самые сложные вопросы по предмету -> database_tool + hardest_questions
-- Количество неуспешных (более 80% не сдали) по предмету -> database_tool + failure_stats
-- Вопросы, где студент не справился, и его meta-оценки -> student_meta_tool + student_meta
-- Теоретический вопрос / концепт экзамена -> rag_tool + rag_answer
+- Количество неуспешных (более 80% не сдали) -> database_tool + failure_stats
+- Вопросы, где конкретный студент не справился, и его meta-оценки -> student_meta_tool + student_meta
+- Теоретический вопрос про тему/концепт -> rag_tool + rag_answer
 
-Нормализация предметов для function call:
-- Всегда возвращай subject_name в каноническом виде:
+Чеклист перед выбором инструмента:
+1) Есть ли в запросе intent "лучшие/топ/рейтинг/лидеры" + "студенты/учащиеся"?
+   -> сразу database_tool + top_students.
+2) Только если ответа "да" в п.1 нет, можно рассматривать другие tools.
+
+Нормализация предмета для function call:
+- Возвращай subject_name только в каноническом виде:
   * "Machine Learning"
   * "Probability Theory"
   * "Optimization Theory"
-- Алиасы для "Machine Learning": "ml", "мл", "машинка", "машинное обучение"
-- Алиасы для "Probability Theory": "теорвер", "тервер", "теория вероятности"
-- Алиасы для "Optimization Theory": "опты", "метопты", "методы оптимизации"
+- Алиасы:
+  * "ml", "мл", "машинка", "машинное обучение", "по машинному обучению" -> "Machine Learning"
+  * "теорвер", "тервер", "теория вероятности", "по теории вероятностей" -> "Probability Theory"
+  * "опты", "метопты", "методы оптимизации", "по теории оптимизации" -> "Optimization Theory"
 
-Верни только function call.
+Для top_students:
+- Если top_k явно указан в запросе, верни его.
+- Если не указан, верни top_k = 3.
 """
     payload = {
         'messages': [
@@ -114,12 +130,23 @@ def route_query(user_query: str) -> dict:
 
     # Fallback heuristic keeps routing deterministic.
     lowered = user_query.lower()
-    if 'top' in lowered and 'student' in lowered:
+    top_markers = (
+        'top',
+        'топ',
+        'лучшие',
+        'лучший',
+        'рейтинг',
+        'лидеры',
+    )
+    student_markers = ('student', 'студент', 'учащ', 'ученик')
+    has_top_intent = any(marker in lowered for marker in top_markers)
+    has_student_intent = any(marker in lowered for marker in student_markers)
+    if has_top_intent and has_student_intent:
         return {
             'tool_name': 'database_tool',
             'operation': 'top_students',
             'subject_name': user_query,
-            'top_k': 5,
+            'top_k': 3,
         }
     if 'hardest' in lowered:
         return {

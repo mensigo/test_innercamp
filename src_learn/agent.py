@@ -37,6 +37,18 @@ def _extract_subject(route: dict, user_query: str) -> str:
     return 'Machine Learning'
 
 
+def _format_top_students(rows: list[dict]) -> str:
+    """Format top students rows into a compact one-line answer."""
+    chunks: list[str] = []
+    for row in rows:
+        name = str(row.get('name') or '').strip()
+        grade = row.get('grade')
+        if not name or grade is None:
+            continue
+        chunks.append(f'{name} ({grade})')
+    return ', '.join(chunks)
+
+
 def agent(message_history: list[dict]) -> dict:
     """Run classify->route->tool execution and return minimal answer."""
     ensure_data_files()
@@ -50,7 +62,7 @@ def agent(message_history: list[dict]) -> dict:
     tool_name = str(route.get('tool_name') or '')
     operation = str(route.get('operation') or '')
     subject_name = _extract_subject(route, user_query)
-    top_k = int(route.get('top_k') or 5)
+    top_k = int(route.get('top_k') or 3)
 
     if tool_name == 'database_tool':
         output = database_tool(
@@ -63,6 +75,9 @@ def agent(message_history: list[dict]) -> dict:
         if operation == 'failure_stats':
             count = output['data']['count']
             return {'answer': f'count: {count}'}
+        if operation == 'top_students':
+            rows = output.get('data') or []
+            return {'answer': _format_top_students(rows)}
         return {'answer': json.dumps(output['data'], ensure_ascii=False)}
 
     if tool_name == 'student_meta_tool':

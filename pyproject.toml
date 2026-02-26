@@ -38,6 +38,7 @@ testpaths = ["test_learn"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+disable_test_id_escaping_and_forfeit_all_rights_to_community_support = true
 env_files = ".env"
 filterwarnings = [
     "ignore:builtin type .{,15} has no __module__ attribute:DeprecationWarning",

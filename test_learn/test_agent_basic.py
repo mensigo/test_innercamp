@@ -69,5 +69,7 @@ def test_agent_top_students_happy_path(monkeypatch):
 
     result = agent([{'role': 'user', 'content': 'Top-3 students in Machine Learning'}])
     assert 'answer' in result
-    assert result['answer'].startswith('[')
-    assert 'grade' in result['answer']
+    answer = result['answer']
+    assert isinstance(answer, str) and answer
+    assert ', ' in answer
+    assert '(' in answer and ')' in answer

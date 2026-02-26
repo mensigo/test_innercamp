@@ -88,7 +88,7 @@ def _failure_stats(subject_name: str, failed_share_threshold: float) -> int:
 def database_tool(
     operation: str,
     subject_name: str,
-    top_k: int = 5,
+    top_k: int = 3,
     failed_share_threshold: float = 0.8,
 ) -> dict:
     """Run deterministic analytics operation over local grade data."""
