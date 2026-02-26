@@ -78,6 +78,7 @@ def agent(message_history: list[dict]) -> dict:
         if operation == 'top_students':
             rows = output.get('data') or []
             return {'answer': _format_top_students(rows)}
+
         return {'answer': json.dumps(output['data'], ensure_ascii=False)}
 
     if tool_name == 'student_meta_tool':

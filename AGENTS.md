@@ -4,6 +4,9 @@
 - dont use "-> None" hint if function returns nothing (excess info)
 - use simple docstrings (just describe the main purpose of function)
 
+# Commands
+- to run `python` or `uv` activate `.venv` first
+
 # Spec/implementation moments
 
 Spec rules:
