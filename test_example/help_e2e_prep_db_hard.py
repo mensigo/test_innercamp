@@ -8,7 +8,7 @@ import argparse
 import json
 import pandas as pd
 
-from src_learn.data_store import META_GRADES_CSV
+from src_example.data_store import META_GRADES_CSV
 
 
 @dataclass

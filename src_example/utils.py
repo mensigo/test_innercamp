@@ -1,20 +1,5 @@
 """GigaChat/OpenAI API wrapper functions."""
 
-from src import post_chat_completions as post_chat_completions_impl
-from src import post_embeddings as post_embeddings_impl
+from . import post_chat_completions, post_embeddings
 
-
-def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
-    """
-    Generate model response based on messages.
-    Sends POST request to /chat/completions endpoint.
-    """
-    return post_chat_completions_impl(payload, verbose)
-
-
-def post_embeddings(payload: dict, verbose: bool = False) -> dict:
-    """
-    Create vector embeddings for text.
-    Sends POST request to /embeddings endpoint.
-    """
-    return post_embeddings_impl(payload, verbose)
+__all__ = ['post_chat_completions', 'post_embeddings']

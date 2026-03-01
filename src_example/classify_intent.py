@@ -1,8 +1,8 @@
-"""Intent classification for src_learn agent."""
+"""Intent classification for example agent."""
 
-from src_learn.config import config
-from src_learn.logger import logger
-from src_learn.utils import post_chat_completions
+from .config import config
+from .logger import logger
+from .utils import post_chat_completions
 
 
 def classify_intent(user_query: str) -> bool:

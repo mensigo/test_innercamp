@@ -6,7 +6,7 @@ import csv
 from functools import lru_cache
 from pathlib import Path
 
-from src_learn.logger import logger
+from .logger import logger
 
 SUBJECTS = [
     'Machine Learning',

@@ -1,12 +1,12 @@
-"""LLM-based query routing for src_learn agent."""
+"""LLM-based query routing for example agent."""
 
 from __future__ import annotations
 
 import json
 
-from src_learn.config import config
-from src_learn.logger import logger
-from src_learn.utils import post_chat_completions
+from .config import config
+from .logger import logger
+from .utils import post_chat_completions
 
 
 def route_query(user_query: str) -> dict:

@@ -22,7 +22,7 @@ logger.add(
     filter=stdout_only_filter,
 )
 logger.add(
-    'agent_learn.log',
+    'agent.log',
     format='{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}',
     level='DEBUG',
     rotation='5 MB',

@@ -2,7 +2,7 @@
 
 import pytest
 
-from src_learn.agent import agent
+from src_example.agent import agent
 
 pytestmark = [pytest.mark.llm, pytest.mark.e2e]
 

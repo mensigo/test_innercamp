@@ -6,8 +6,8 @@ import csv
 
 import pytest
 
-from src_learn.data_store import ENROLLMENTS_CSV, META_GRADES_CSV, SUBJECTS
-from src_learn.tools.database_tool import database_tool
+from src_example.data_store import ENROLLMENTS_CSV, META_GRADES_CSV, SUBJECTS
+from src_example.tools.database_tool import database_tool
 
 
 def _expected_top_students(subject_name: str, top_k: int) -> list[dict]:

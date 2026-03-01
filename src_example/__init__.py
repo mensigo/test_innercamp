@@ -2,9 +2,9 @@ from .config import config
 from .logger import logger
 
 if config.insigma:
-    from .utils import post_chat_completions, post_embeddings
+    from .utils_gigachat import post_chat_completions, post_embeddings
 else:
-    from src.utils_openai import post_chat_completions, post_embeddings
+    from .utils_openai import post_chat_completions, post_embeddings
 
 
 __version__ = '0.1.0'

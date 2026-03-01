@@ -1,8 +1,8 @@
-"""Tests for route_query in src_learn.router."""
+"""Tests for route_query in src_example.router."""
 
 import pytest
 
-from src_learn.router import route_query
+from src_example.router import route_query
 
 pytestmark = [pytest.mark.llm]
 

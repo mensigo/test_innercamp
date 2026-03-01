@@ -8,7 +8,7 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 
-from src_learn.data_store import ENROLLMENTS_CSV, META_GRADES_CSV
+from src_example.data_store import ENROLLMENTS_CSV, META_GRADES_CSV
 
 
 @dataclass

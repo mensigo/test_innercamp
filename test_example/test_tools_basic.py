@@ -1,8 +1,8 @@
 """Basic happy-path tests for local tools."""
 
-from src_learn.tools.database_tool import database_tool
-from src_learn.tools.rag_tool import rag_tool
-from src_learn.tools.student_meta_tool import student_meta_tool
+from src_example.tools.database_tool import database_tool
+from src_example.tools.rag_tool import rag_tool
+from src_example.tools.student_meta_tool import student_meta_tool
 
 
 def test_database_tool_top_students_basic():

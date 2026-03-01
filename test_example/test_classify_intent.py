@@ -2,7 +2,7 @@
 
 import pytest
 
-from src_learn.classify_intent import classify_intent
+from src_example.classify_intent import classify_intent
 
 pytestmark = [pytest.mark.llm]
 

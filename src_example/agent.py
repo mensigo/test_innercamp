@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import json
 
-from src_learn.classify_intent import classify_intent
-from src_learn.data_store import ensure_data_files, normalize_student_name
-from src_learn.logger import logger
-from src_learn.router import route_query
-from src_learn.tools import database_tool, rag_tool, student_meta_tool
+from .classify_intent import classify_intent
+from .data_store import ensure_data_files, normalize_student_name
+from .logger import logger
+from .router import route_query
+from .tools import database_tool, rag_tool, student_meta_tool
 
 IRRELEVANT_MESSAGE = 'Irrelevant query, reformulate'
 

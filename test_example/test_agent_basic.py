@@ -1,8 +1,8 @@
-"""Initial simple tests for src_learn agent."""
+"""Initial simple tests for src_example agent."""
 
 import json
 
-from src_learn.agent import IRRELEVANT_MESSAGE, agent
+from src_example.agent import IRRELEVANT_MESSAGE, agent
 
 
 def test_agent_irrelevant_query(monkeypatch):
@@ -13,7 +13,7 @@ def test_agent_irrelevant_query(monkeypatch):
         return {'choices': [{'message': {'content': 'irrelevant'}}]}
 
     monkeypatch.setattr(
-        'src_learn.classify_intent.post_chat_completions',
+        'src_example.classify_intent.post_chat_completions',
         fake_post_chat_completions,
     )
 
@@ -59,11 +59,11 @@ def test_agent_top_students_happy_path(monkeypatch):
         return responses.pop(0)
 
     monkeypatch.setattr(
-        'src_learn.classify_intent.post_chat_completions',
+        'src_example.classify_intent.post_chat_completions',
         fake_classify_post_chat_completions,
     )
     monkeypatch.setattr(
-        'src_learn.router.post_chat_completions',
+        'src_example.router.post_chat_completions',
         fake_route_post_chat_completions,
     )
 
