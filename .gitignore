@@ -20,4 +20,4 @@ patches
 *.txt
 
 plans/
-src_learn/generated_data/
+src_*/generated_data/

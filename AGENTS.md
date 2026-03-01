@@ -19,3 +19,9 @@ Prompt rules:
 Testing:
 - make sure to activate python `.venv` before running any tests
 - use `uv run pytest <file>` command to run any tests if needed
+
+# Project structure
+
+src - template for agent described in tasks/agent.md
+src_example - example agent implementation, according to tasks/agent_example.md
+test_example - tests for example agent implementation, according to tasks/agent_example.md

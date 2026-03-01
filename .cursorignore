@@ -4,3 +4,6 @@
 uv.lock
 
 plans/
+
+src_haiku/
+test_haiku/

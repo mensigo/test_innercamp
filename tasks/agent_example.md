@@ -1,6 +1,6 @@
 # Специфика реализации
 
-Здесь представлены детали реализации агента (генерация данных, апи и прочее).
+Здесь представлены детали реализации агента (генерация данных, апи и прочее), описанного в [agent.md](agent.md)
 
 ## Дополнение к тестам
 
@@ -31,8 +31,8 @@ test_llm  # тест chat_completions, embeddings
 
 Отдельная функция: `post_chat_completions(payload: dict, **kwargs) -> dict`
 
-- verbose: bool = False
-- `payload` обязательно содержит `messages`, может содержать доп. параметры (напр., `temperature`)
+- `payload` обязательно содержит `messages`, может содержать доп. параметры (напр., `temperature`, `max_tokens`)
+- `kwargs` могут содержать `verbose` (bool, False by default)
 - если `payload` не содержит `model`, то устанавливается дефолтное значение `config.default_model` 
 - если `verbose=True`, то в лог пишется `payload` (до запроса) и `response` (после успешного запроса) на уровне debug
 - если при запросе происходит ошибка, то в лог пишется стектрейс ошибки на уровне error/critical и возвращается словарь вида `{"error": "<exception text>"}`
@@ -40,9 +40,10 @@ test_llm  # тест chat_completions, embeddings
 
 ### 2. Запрос на эмбеддинги /embeddings
 
-Отдельная функция: `post_embeddings(payload: dict, verbose: bool = False) -> dict`
+Отдельная функция: `post_embeddings(payload: dict, **kwargs) -> dict`
 
 - `payload` обязательно содержит `input`
+- `kwargs` могут содержать `verbose` (bool, False by default)
 - если `payload` не содержит `model`, то устанавливается дефолтное значение `config.default_embedding_model` 
 - если `verbose=True`, то в лог пишется `payload` (до запроса) и `response` (после успешного запроса) на уровне debug
 - если при запросе происходит ошибка, то в лог пишется стектрейс ошибки на уровне error/critical и возвращается словарь вида `{"error": "< exception text >"}`
