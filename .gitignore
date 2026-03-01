@@ -22,3 +22,5 @@ patches
 
 plans/
 src_*/generated_data/
+src/data/faiss.index
+src/data/rag_chunks.json
