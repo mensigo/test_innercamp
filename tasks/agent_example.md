@@ -23,6 +23,7 @@ test_llm  # тест chat_completions, embeddings
 - api - тесты api 1-4
 - llm - тесты llm api (chat_completions, embeddings)
 - unit - тесты без вызовов llm api (локально)
+- e2e - тесты агента, реальные llm вызовы
 
 
 ## Подробно про запросы на LLM API

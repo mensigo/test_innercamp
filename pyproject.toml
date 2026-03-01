@@ -35,7 +35,7 @@ where = ["."]
 include = ["src*"]
 
 [tool.pytest.ini_options]
-testpaths = ["test_learn"]
+testpaths = ["test_example", "test"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
@@ -45,10 +45,12 @@ filterwarnings = [
     "ignore:builtin type .{,15} has no __module__ attribute:DeprecationWarning",
 ]
 markers = [
-    "integration: test multiple components interaction",
+    "api: tests for api 1-4 functions",
+    "llm: test llm api (chat_completions, embeddings)",
     "unit: test single components (fast, with mocks)",
-    "llm: test api calls (check prompts)",
     "e2e: end-to-end tests through real agent flow",
+
+    # "integration: test multiple components interaction",
     # "rag: test rag related functions",
     # "haiku: test haiku related functions",
     # "step1: step1 stage tests",

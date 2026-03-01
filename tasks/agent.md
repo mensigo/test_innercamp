@@ -26,10 +26,10 @@
 
 Структура:
 
-src_learn/data
+src/data
 - students.csv
 
-src_learn/data/courses
+src/data/courses
 - fa.md
 - la.md
 - ma.md
@@ -50,7 +50,7 @@ src_learn/data/courses
 
 ### API
 
-Представлены в виде python функций в директории src_learn/api.
+Представлены в виде python функций в директории src/api.
 
 #### 1. get_students
 
@@ -104,7 +104,7 @@ test_get_search_rag             # агент -> api 4
 
 ### Агент
 
-В директории src_learn есть agent.py с функцией agent - ее нужно написать. В ней зашита вся механика с вызовом API, принятием решений и тд.
+В директории src есть agent.py с функцией agent - ее нужно написать. В ней зашита вся механика с вызовом API, принятием решений и тд.
 
 Пример запроса пользователя:
 
@@ -130,11 +130,11 @@ agent_result = {
 
 ### Вызов LLM
 
-В директории src_learn ест utils.py с функциями post_chat_completions и post_embeddings - их нужно реализовать.
+В директории src ест utils.py с функциями post_chat_completions и post_embeddings - их нужно реализовать.
 
 ВАЖНО:
 - работа API rag_search завязана на построенном индексе, для которого нужны эмбеддинги
-- поэтому перед началом работы с агентом необходимо реализовать функцию post_embeddings и запустить src_learn/prepare_rag_index.py
+- поэтому перед началом работы с агентом необходимо реализовать функцию post_embeddings и запустить src/prepare_data.py
 
 
 ## Общие требования
