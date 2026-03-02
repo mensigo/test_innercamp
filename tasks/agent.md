@@ -27,19 +27,21 @@
 Структура:
 
 src/data
-- students.csv
-
-src/data/courses
-- fa.md
-- la.md
-- ma.md
-- ml.md
-- opt.md
-- optics.md
-- phil.md
-- physics.md
-- prob.md
-- prob_extra.md
+├── faiss.index
+├── ml_bayes.md
+├── ml_extra.md
+├── ml_intro.md
+├── ml_practics.md
+├── ml.md
+├── opt_cont.md
+├── opt_ml.md
+├── opt.md
+├── phil.md
+├── prob_stats.md
+├── prob.md
+├── rag_chunks.json
+├── rand_proc.md
+└── students.csv
 
 
 Общее:
@@ -87,16 +89,30 @@ src/data/courses
 
 ### Тесты
 
-Дан набор тестов (директория test_learn/agent), которые должен проходить агент. Все тесты имеют вид end-to-end: запрос пользователя (строка) -> ответ.
+Дан набор тестов (директория test/agent), которые должен проходить агент. Тесты имеют вид end-to-end: запрос пользователя (строка) -> ответ.
 
 Список тестов:
 ```
 test_agent_irrelevant           # нерелевантные запросы
 test_agent_get_students         # агент -> api 1
-test_agent_get_avg_score        # агент ->  api 2
+test_agent_get_avg_score        # агент -> api 2
 test_get_get_avg_overall_score  # агент -> api 3
 test_get_search_rag             # агент -> api 4
 ...
+```
+
+Также есть базовые тесты на проверку api, вызовов llm, их общей конфигурации (должны проходить всегда):
+```
+test
+├── api
+│   ├── test_get_avg_overall_score.py
+│   ├── test_get_avg_score.py
+│   ├── test_get_students.py
+│   └── test_search_rag.py
+├── llm
+│   └── test_utils.py
+├── test_prepare_data_db.py
+└── test_prepare_data_index.py
 ```
 
 

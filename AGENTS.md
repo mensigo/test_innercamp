@@ -23,5 +23,7 @@ Testing:
 # Project structure
 
 src - template for agent described in tasks/agent.md
+test - tests for src
+
 src_example - example agent implementation, according to tasks/agent_example.md
 test_example - tests for example agent implementation, according to tasks/agent_example.md

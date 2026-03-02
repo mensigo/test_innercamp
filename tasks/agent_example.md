@@ -4,7 +4,7 @@
 
 ## Дополнение к тестам
 
-Тесты api 1-4 в директории src_learn/api:
+Тесты api 1-4 в директории test/api:
 ```
 test_api_get_students               # тест api 1
 test_api_get_avg_score              # тест api 2
@@ -12,9 +12,9 @@ test_api_get_get_avg_overall_score  # тест api 3
 test_api_get_search_rag             # тест api 4
 ```
 
-Тесты llm api в директории src_learn/llm:
+Тесты llm api в директории test/llm:
 ```
-test_llm  # тест chat_completions, embeddings
+test_utils  # тест chat_completions, embeddings
 ```
 
 
