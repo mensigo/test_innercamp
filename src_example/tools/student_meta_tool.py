@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src_learn.data_store import (
+from src_example.data_store import (
     load_meta_grades,
     normalize_student_name,
     normalize_subject_name,

@@ -21,5 +21,5 @@ def get_top_students(subject_name: str, k: int = 3) -> list[dict[str, float | st
         score = float(row['score'])
         matches.append({'name': row['student_name'], 'score': score})
 
-    matches.sort(key=lambda item: float(item['score']), reverse=True)
+    matches.sort(key=lambda item: (-float(item['score']), item['name']))
     return matches[:k]

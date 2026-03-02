@@ -10,7 +10,7 @@ from .logger import logger
 from .router import route_query
 from .tools import database_tool, rag_tool, student_meta_tool
 
-IRRELEVANT_MESSAGE = 'Irrelevant query, reformulate'
+IRRELEVANT_MESSAGE = 'Вопрос не релевантен для агента'
 
 
 def _extract_last_user_text(message_history: list[dict]) -> str:

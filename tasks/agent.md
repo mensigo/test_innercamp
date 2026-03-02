@@ -57,7 +57,7 @@ src/data
 #### 1. get_top_students
 
 - на вход название предмета и топ-k (дефолт k=3)
-- возвращает информацию топ-k студентов, отсортированных по баллу
+- возвращает информацию топ-k студентов, отсортированных по баллу (при равном балле - по имени)
 - пример запроса: “топ студентов по мл”
 - пример ответа: [ {“name”: “John”, “score”: 4.9}, {“name”: “Marie”, “score”: 4.7}, {“name”: “William”, “score”: 3.8} ]
 - !! если название предмета пусто / нет в данных, то возвращает пустой список
@@ -93,11 +93,11 @@ src/data
 
 Список тестов:
 ```
-test_agent_irrelevant           # нерелевантные запросы
-test_agent_get_top_students         # агент -> api 1
-test_agent_get_avg_score        # агент -> api 2
-test_get_get_avg_overall_score  # агент -> api 3
-test_get_search_rag             # агент -> api 4
+test_agent_irrelevant             # нерелевантные запросы
+test_agent_get_top_students       # агент -> api 1
+test_agent_get_avg_score          # агент -> api 2
+test_agent_get_avg_overall_score  # агент -> api 3
+test_agent_search_rag             # агент -> api 4
 ...
 ```
 
@@ -157,3 +157,8 @@ agent_result = {
 
 - ходить за данными можно только через API
 - для работы rag_search нужно построить RAG индекс
+
+
+## На усмотрение разработчика
+
+- ответа агента, если в запросе на топ студентов нет основного предмета (напр., "топ студентов по философии")

@@ -6,7 +6,7 @@ import re
 from functools import lru_cache
 from pathlib import Path
 
-from src_learn.data_store import EXAMS_DIR, ensure_data_files
+from src_example.data_store import EXAMS_DIR, ensure_data_files
 
 
 def _tokenize(text: str) -> set[str]:
