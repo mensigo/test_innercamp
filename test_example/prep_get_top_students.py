@@ -13,7 +13,6 @@ from src.prepare_data import ensure_students_csv
 @dataclass
 class TopStudentsCase:
     idx: int
-    tool_name: str
     subject_name: str
     top_k: int
     user_query: str
@@ -23,7 +22,6 @@ class TopStudentsCase:
 CASES_SIMPLE: list[TopStudentsCase] = [
     TopStudentsCase(
         idx=1,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=3,
         user_query='машинное обучение: лучшие студенты',
@@ -31,7 +29,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=2,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=3,
         user_query='в машинном обучении покажи лучших студентов',
@@ -39,7 +36,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=3,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=4,
         user_query='по машинному обучению топ-4 студентов',
@@ -47,7 +43,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=4,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=3,
         user_query='теория вероятностей: кто лучшие студенты? топ3',
@@ -55,7 +50,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=5,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=3,
         user_query='лучшие в теории вероятностей студенты',
@@ -63,7 +57,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=6,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=10,
         user_query='топ 10 по теории вероятностей среди студентов',
@@ -76,7 +69,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=7,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='теория оптимизации: кто из студентов лучший?',
@@ -84,7 +76,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=8,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='среди студентов лучшие по теории оптимизации',
@@ -92,7 +83,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=9,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=10,
         user_query='по теории оптимизации покажи студенческий топ-10',
@@ -108,7 +98,6 @@ CASES_SIMPLE: list[TopStudentsCase] = [
 CASES_COMPLEX: list[TopStudentsCase] = [
     TopStudentsCase(
         idx=10,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=3,
         user_query='топовые студенты по ml',
@@ -116,7 +105,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=11,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=3,
         user_query='лучшие топ3 студенты по мл?',
@@ -124,7 +112,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=12,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=2,
         user_query='топ2 студентов по машинке',
@@ -132,7 +119,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=13,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=7,
         user_query='лучшие по машинному обучению топ7',
@@ -140,7 +126,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=14,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='три лучших студента по оптимизации',
@@ -148,7 +133,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=15,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='топ-3 лучших студентов по оптам',
@@ -156,7 +140,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=16,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='топовые студенты по метоптам?',
@@ -164,7 +147,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=17,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=3,
         user_query='топ учащихся по мл',
@@ -172,7 +154,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=18,
-        tool_name='get_top_students',
         subject_name='Optimization Theory',
         top_k=3,
         user_query='топ студентов по методам оптимизации',
@@ -180,7 +161,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=19,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=4,
         user_query='топ4 лучших студентиков по теорверу',
@@ -188,7 +168,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=20,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=3,
         user_query='лучшие топовые студенты по терверу?',
@@ -196,7 +175,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=21,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=3,
         user_query='top студентов по теории вероятности',
@@ -204,7 +182,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=22,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=5,
         user_query='топ пять учеников по мл',
@@ -212,7 +189,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=23,
-        tool_name='get_top_students',
         subject_name='Probability Theory',
         top_k=8,
         user_query='топовые восемь студентов, предмет тервер',
@@ -220,7 +196,6 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
     TopStudentsCase(
         idx=24,
-        tool_name='get_top_students',
         subject_name='Machine Learning',
         top_k=2,
         user_query='по предмету мл топ два учащихся',
@@ -228,8 +203,23 @@ CASES_COMPLEX: list[TopStudentsCase] = [
     ),
 ]
 
-_STUDENTS_CSV_PATH = ensure_students_csv(force=False)
-_STUDENTS_DF = pd.read_csv(_STUDENTS_CSV_PATH)
+STUDENTS_CSV_PATH = ensure_students_csv(force=False)
+STUDENTS_DF = pd.read_csv(STUDENTS_CSV_PATH)
+
+if STUDENTS_DF.empty:
+    SORTED_ROWS_BY_SUBJECT: dict[str, list[tuple[str, float]]] = {}
+else:
+    SCORES_DF = STUDENTS_DF.copy()
+    SCORES_DF['score'] = SCORES_DF['score'].astype(float).round(1)
+    SORTED_ROWS_BY_SUBJECT = {}
+    for subject_name, group in SCORES_DF.groupby('subject_name'):
+        sorted_group = group.sort_values(
+            by=['score', 'student_name'], ascending=[False, True]
+        )
+        SORTED_ROWS_BY_SUBJECT[str(subject_name)] = [
+            (str(row.student_name), float(row.score))
+            for row in sorted_group.itertuples(index=False)
+        ]
 
 
 def _format_top_students(rows: list[tuple[str, float]]) -> str:
@@ -240,18 +230,10 @@ def _format_top_students(rows: list[tuple[str, float]]) -> str:
 
 
 def _expected_answer(subject_name: str, top_k: int) -> str:
-    filtered = _STUDENTS_DF[_STUDENTS_DF['subject_name'] == subject_name].copy()
-    if filtered.empty:
+    subject_rows = SORTED_ROWS_BY_SUBJECT.get(subject_name, [])
+    if not subject_rows:
         return ''
-
-    filtered['score'] = filtered['score'].astype(float).round(1)
-    filtered = filtered.sort_values(
-        by=['score', 'student_name'], ascending=[False, True]
-    )
-    top_rows = [
-        (str(row.student_name), float(row.score))
-        for row in filtered.head(top_k).itertuples(index=False)
-    ]
+    top_rows = subject_rows[:top_k]
     return _format_top_students(top_rows)
 
 
@@ -261,11 +243,8 @@ def validate_cases(
     """Validate case metadata and expected answers against generated dataset."""
     print(desc)
     ok = True
-    known_subjects = set(_STUDENTS_DF['subject_name'])
+    known_subjects = set(STUDENTS_DF['subject_name'])
     for case in cases:
-        if case.tool_name != 'get_top_students':
-            ok = False
-            print(f'invalid tool_name for idx={case.idx}: {case.tool_name}')
         if case.top_k <= 0:
             ok = False
             print(f'invalid top_k for idx={case.idx}: {case.top_k}')

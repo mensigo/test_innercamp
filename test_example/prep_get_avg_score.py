@@ -13,7 +13,6 @@ from src.prepare_data import ensure_students_csv
 @dataclass
 class AvgScoreCase:
     idx: int
-    tool_name: str
     subject_name: str
     user_query: str
     expected_answer: str
@@ -22,35 +21,30 @@ class AvgScoreCase:
 CASES_SIMPLE: list[AvgScoreCase] = [
     AvgScoreCase(
         idx=1,
-        tool_name='get_avg_score',
         subject_name='Machine Learning',
         user_query='средний балл по машинному обучению',
         expected_answer='4.1',
     ),
     AvgScoreCase(
         idx=2,
-        tool_name='get_avg_score',
         subject_name='Probability Theory',
         user_query='средний скор по теории вероятности',
         expected_answer='3.9',
     ),
     AvgScoreCase(
         idx=3,
-        tool_name='get_avg_score',
         subject_name='Optimization Theory',
         user_query='усредненный скор по оптимизации',
         expected_answer='4.0',
     ),
     AvgScoreCase(
         idx=4,
-        tool_name='get_avg_score',
         subject_name='Probability Theory',
         user_query='по теории вероятности средняя оценка',
         expected_answer='3.9',
     ),
     AvgScoreCase(
         idx=5,
-        tool_name='get_avg_score',
         subject_name='Optimization Theory',
         user_query='покажи среднее по методам оптимизации',
         expected_answer='4.0',
@@ -60,69 +54,64 @@ CASES_SIMPLE: list[AvgScoreCase] = [
 CASES_COMPLEX: list[AvgScoreCase] = [
     AvgScoreCase(
         idx=6,
-        tool_name='get_avg_score',
         subject_name='Machine Learning',
         user_query='среднее по мл',
         expected_answer='4.1',
     ),
     AvgScoreCase(
         idx=7,
-        tool_name='get_avg_score',
         subject_name='Optimization Theory',
         user_query='средний балл, опты',
         expected_answer='4.0',
     ),
     AvgScoreCase(
         idx=8,
-        tool_name='get_avg_score',
         subject_name='Probability Theory',
         user_query='тервер среднее',
         expected_answer='3.9',
     ),
     AvgScoreCase(
         idx=9,
-        tool_name='get_avg_score',
         subject_name='Machine Learning',
         user_query='машинка скор с усреднением',
         expected_answer='4.1',
     ),
     AvgScoreCase(
         idx=10,
-        tool_name='get_avg_score',
         subject_name='Optimization Theory',
         user_query='выведи балл как среднее по метоптам',
         expected_answer='4.0',
     ),
 ]
 
-_STUDENTS_CSV_PATH = ensure_students_csv(force=False)
-_STUDENTS_DF = pd.read_csv(_STUDENTS_CSV_PATH)
+STUDENTS_CSV_PATH = ensure_students_csv(force=False)
+STUDENTS_DF = pd.read_csv(STUDENTS_CSV_PATH)
 
 
-def _expected_answer(subject_name: str) -> str:
-    filtered = _STUDENTS_DF[_STUDENTS_DF['subject_name'] == subject_name].copy()
-    if filtered.empty:
-        return ''
-
-    filtered['score'] = filtered['score'].astype(float).round(1)
-    avg_score = round(float(filtered['score'].mean()), 1)
-    return f'{avg_score:.1f}'
+if STUDENTS_DF.empty:
+    ACTUAL_SCORE_BY_SUBJECT: dict[str, str] = {}
+else:
+    SCORES_DF = STUDENTS_DF
+    SCORES_DF['score'] = SCORES_DF['score'].astype(float).round(1)
+    ACTUAL_SCORE_BY_SUBJECT = {
+        str(subject_name): f'{round(float(avg_score), 1):.1f}'
+        for subject_name, avg_score in SCORES_DF.groupby('subject_name')['score']
+        .mean()
+        .items()
+    }
 
 
 def validate_cases(cases: list[AvgScoreCase], desc: str = 'validating get_avg_score'):
     """Validate case metadata and expected answers against generated dataset."""
     print(desc)
     ok = True
-    known_subjects = set(_STUDENTS_DF['subject_name'])
+    known_subjects = set(STUDENTS_DF['subject_name'])
     for case in cases:
-        if case.tool_name != 'get_avg_score':
-            ok = False
-            print(f'invalid tool_name for idx={case.idx}: {case.tool_name}')
         if case.subject_name not in known_subjects:
             ok = False
             print(f'unknown subject for idx={case.idx}: {case.subject_name}')
 
-        actual_answer = _expected_answer(case.subject_name)
+        actual_answer = ACTUAL_SCORE_BY_SUBJECT.get(case.subject_name, '')
         if case.expected_answer != actual_answer:
             ok = False
             print(f'expected_answer mismatch for idx={case.idx}')
