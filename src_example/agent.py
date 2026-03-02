@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
-import json
+from src.api import get_avg_overall_score, get_avg_score, get_top_students
 
-from src.api import get_avg_overall_score, get_avg_score, get_top_students, search_rag
-
+from .answer_with_rag import answer_with_rag
 from .classify_intent import classify_intent
 from .logger import logger
 from .router import route_query
 
 IRRELEVANT_MESSAGE = 'Вопрос не релевантен для агента'
+
+RAG_TOP_K = 2
 
 
 def _format_top_students(rows: list[dict]) -> str:
@@ -43,6 +44,8 @@ def agent(user_query: str) -> dict:
     logger.info(f'agent // route: {route}')
 
     tool_name = str(route.get('tool_name') or '')
+    if tool_name == 'rag_search':
+        tool_name = 'search_rag'
     if tool_name == 'get_top_students':
         subject_name = str(route.get('subject_name') or '').strip()
         try:
@@ -67,7 +70,11 @@ def agent(user_query: str) -> dict:
         return {'answer': f'{float(avg_score):.1f}'}
 
     query = str(route.get('query') or user_query).strip()
-    return {'answer': json.dumps(search_rag(query=query), ensure_ascii=False)}
+    return {
+        'answer': answer_with_rag(
+            user_query=user_query, retrieval_query=query, top_k=RAG_TOP_K
+        )
+    }
 
 
 def main() -> dict:
