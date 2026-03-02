@@ -1,4 +1,4 @@
-"""Prep hardcoded get_top_students e2e data and validate against students.csv."""
+"""Prep hardcoded get_avg_score e2e data and validate against students.csv."""
 
 from __future__ import annotations
 

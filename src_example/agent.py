@@ -60,7 +60,11 @@ def agent(user_query: str) -> dict:
         return {'answer': f'{float(avg_score):.1f}'}
 
     if tool_name == 'get_avg_overall_score':
-        return {'answer': json.dumps(get_avg_overall_score(), ensure_ascii=False)}
+        result = get_avg_overall_score()
+        avg_score = result.get('avg_score')
+        if avg_score is None:
+            return {'answer': ''}
+        return {'answer': f'{float(avg_score):.1f}'}
 
     query = str(route.get('query') or user_query).strip()
     return {'answer': json.dumps(search_rag(query=query), ensure_ascii=False)}
