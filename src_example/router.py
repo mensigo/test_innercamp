@@ -10,40 +10,30 @@ from .utils import post_chat_completions
 
 
 def route_query(user_query: str) -> dict:
-    """Route query to tool + operation via LLM function calling."""
+    """Route query to one src.api function via LLM function calling."""
     tools = [
         {
             'type': 'function',
             'function': {
                 'name': 'route_query',
-                'description': 'Select a local tool and operation for student-domain query.',
+                'description': 'Select one src.api function for student-domain query.',
                 'parameters': {
                     'type': 'object',
                     'properties': {
                         'tool_name': {
                             'type': 'string',
                             'enum': [
-                                'database_tool',
-                                'rag_tool',
-                                'student_meta_tool',
-                            ],
-                        },
-                        'operation': {
-                            'type': 'string',
-                            'enum': [
-                                'top_students',
-                                'hardest_questions',
-                                'failure_stats',
-                                'student_meta',
-                                'rag_answer',
+                                'get_top_students',
+                                'get_avg_score',
+                                'get_avg_overall_score',
+                                'search_rag',
                             ],
                         },
                         'subject_name': {'type': 'string'},
-                        'student_name': {'type': 'string'},
-                        'top_k': {'type': 'integer'},
-                        'question': {'type': 'string'},
+                        'k': {'type': 'integer'},
+                        'query': {'type': 'string'},
                     },
-                    'required': ['tool_name', 'operation'],
+                    'required': ['tool_name'],
                 },
             },
         }
@@ -51,13 +41,12 @@ def route_query(user_query: str) -> dict:
 
     system_prompt = """
 Ты маршрутизируешь запросы для локального агента студенческой аналитики.
-Выбери ровно одну пару tool+operation и верни только function call.
+Выбери ровно один tool_name (это имя API-функции) и верни только function call.
 
 КРИТИЧЕСКОЕ ПРАВИЛО (высший приоритет):
 Если в запросе есть намерение выбрать лучших студентов по предмету,
 ВСЕГДА выбирай:
-- tool_name = "database_tool"
-- operation = "top_students"
+- tool_name = "get_top_students"
 
 Это включает формулировки:
 - "лучшие студенты", "лучший студент", "кто лучший", "кто лучшие"
@@ -65,18 +54,17 @@ def route_query(user_query: str) -> dict:
 - перестановки слов: "среди студентов лучшие по ...", "...: лучшие студенты"
 
 ЖЕСТКИЙ ЗАПРЕТ:
-- Для запросов про лучших/топ студентов НИКОГДА не выбирай "rag_tool".
+- Для запросов про лучших/топ студентов НИКОГДА не выбирай "search_rag".
 
 Точное соответствие типов запросов:
-- Лучшие студенты по предмету -> database_tool + top_students
-- Самые сложные вопросы по предмету -> database_tool + hardest_questions
-- Количество неуспешных (более 80% не сдали) -> database_tool + failure_stats
-- Вопросы, где конкретный студент не справился, и его meta-оценки -> student_meta_tool + student_meta
-- Теоретический вопрос про тему/концепт -> rag_tool + rag_answer
+- Лучшие студенты по предмету -> get_top_students (subject_name, k)
+- Средний балл по конкретному предмету -> get_avg_score (subject_name)
+- Средний балл по всем предметам/студентам -> get_avg_overall_score
+- Теоретический вопрос про курс/тему/концепт -> search_rag (query)
 
 Чеклист перед выбором инструмента:
 1) Есть ли в запросе intent "лучшие/топ/рейтинг/лидеры" + "студенты/учащиеся"?
-   -> сразу database_tool + top_students.
+   -> сразу get_top_students.
 2) Только если ответа "да" в п.1 нет, можно рассматривать другие tools.
 
 Нормализация предмета для function call:
@@ -89,9 +77,9 @@ def route_query(user_query: str) -> dict:
   * "теорвер", "тервер", "теория вероятности", "по теории вероятностей" -> "Probability Theory"
   * "опты", "метопты", "методы оптимизации", "по теории оптимизации" -> "Optimization Theory"
 
-Для top_students:
-- Если top_k явно указан в запросе, верни его.
-- Если не указан, верни top_k = 3.
+Для get_top_students:
+- Если k явно указан в запросе, верни его.
+- Если не указан, верни k = 3.
 """
     payload = {
         'messages': [
@@ -106,9 +94,8 @@ def route_query(user_query: str) -> dict:
     if 'error' in response:
         logger.warning(f'agent // route error: {response["error"]}')
         return {
-            'tool_name': 'rag_tool',
-            'operation': 'rag_answer',
-            'question': user_query,
+            'tool_name': 'search_rag',
+            'query': user_query,
         }
 
     message = response.get('choices', [{}])[0].get('message', {})
@@ -143,16 +130,22 @@ def route_query(user_query: str) -> dict:
     has_student_intent = any(marker in lowered for marker in student_markers)
     if has_top_intent and has_student_intent:
         return {
-            'tool_name': 'database_tool',
-            'operation': 'top_students',
+            'tool_name': 'get_top_students',
             'subject_name': user_query,
-            'top_k': 3,
+            'k': 3,
         }
-    if 'hardest' in lowered:
-        return {
-            'tool_name': 'database_tool',
-            'operation': 'hardest_questions',
-            'subject_name': user_query,
-            'top_k': 3,
-        }
-    return {'tool_name': 'rag_tool', 'operation': 'rag_answer', 'question': user_query}
+    if 'средн' in lowered and (
+        'ml' in lowered
+        or 'мл' in lowered
+        or 'машин' in lowered
+        or 'вероят' in lowered
+        or 'теорвер' in lowered
+        or 'тервер' in lowered
+        or 'оптим' in lowered
+    ):
+        return {'tool_name': 'get_avg_score', 'subject_name': user_query}
+
+    if 'средн' in lowered:
+        return {'tool_name': 'get_avg_overall_score'}
+
+    return {'tool_name': 'search_rag', 'query': user_query}

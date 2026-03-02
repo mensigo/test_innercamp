@@ -1,40 +1,16 @@
-"""Local student-domain agent with classify and tool orchestration."""
+"""Student-domain agent that routes user query to src.api functions."""
 
 from __future__ import annotations
 
 import json
 
+from src.api import get_avg_overall_score, get_avg_score, get_top_students, search_rag
+
 from .classify_intent import classify_intent
-from .data_store import ensure_data_files, normalize_student_name
 from .logger import logger
 from .router import route_query
-from .tools import database_tool, rag_tool, student_meta_tool
 
 IRRELEVANT_MESSAGE = 'Вопрос не релевантен для агента'
-
-
-def _extract_last_user_text(message_history: list[dict]) -> str:
-    """Extract last user content from history."""
-    for message in reversed(message_history):
-        if message.get('role') == 'user':
-            return str(message.get('content', '')).strip()
-    return ''
-
-
-def _extract_subject(route: dict, user_query: str) -> str:
-    """Extract a likely subject string from route and query."""
-    subject = str(route.get('subject_name') or '').strip()
-    if subject:
-        return subject
-
-    lowered = user_query.lower()
-    if 'machine learning' in lowered or ' ml' in lowered:
-        return 'Machine Learning'
-    if 'probability theory' in lowered or 'probability' in lowered:
-        return 'Probability Theory'
-    if 'optimization theory' in lowered or 'optimization' in lowered:
-        return 'Optimization Theory'
-    return 'Machine Learning'
 
 
 def _format_top_students(rows: list[dict]) -> str:
@@ -42,17 +18,24 @@ def _format_top_students(rows: list[dict]) -> str:
     chunks: list[str] = []
     for row in rows:
         name = str(row.get('name') or '').strip()
-        grade = row.get('grade')
-        if not name or grade is None:
+        score = row.get('score')
+        if not name or score is None:
             continue
-        chunks.append(f'{name} ({grade})')
+        chunks.append(f'{name} ({float(score):.1f})')
     return ', '.join(chunks)
 
 
-def agent(message_history: list[dict]) -> dict:
-    """Run classify->route->tool execution and return minimal answer."""
-    ensure_data_files()
-    user_query = _extract_last_user_text(message_history)
+def _extract_k(route: dict) -> int:
+    """Extract and validate k from route payload."""
+    raw_k = route.get('k', route.get('top_k', 3))
+    try:
+        return int(raw_k)
+    except (TypeError, ValueError):
+        return 3
+
+
+def agent(user_query: str) -> dict:
+    """Run classify->route->API execution and return answer payload."""
     if not classify_intent(user_query):
         return {'answer': IRRELEVANT_MESSAGE}
 
@@ -60,46 +43,29 @@ def agent(message_history: list[dict]) -> dict:
     logger.info(f'agent // route: {route}')
 
     tool_name = str(route.get('tool_name') or '')
-    operation = str(route.get('operation') or '')
-    subject_name = _extract_subject(route, user_query)
-    top_k = int(route.get('top_k') or 3)
+    if tool_name == 'get_top_students':
+        subject_name = str(route.get('subject_name') or '').strip()
+        try:
+            rows = get_top_students(subject_name=subject_name, k=_extract_k(route))
+        except ValueError as ex:
+            return {'answer': str(ex)}
+        return {'answer': _format_top_students(rows)}
 
-    if tool_name == 'database_tool':
-        output = database_tool(
-            operation=operation,
-            subject_name=subject_name,
-            top_k=top_k,
-        )
-        if 'error' in output:
-            return {'answer': output['error']}
-        if operation == 'failure_stats':
-            count = output['data']['count']
-            return {'answer': f'count: {count}'}
-        if operation == 'top_students':
-            rows = output.get('data') or []
-            return {'answer': _format_top_students(rows)}
+    if tool_name == 'get_avg_score':
+        subject_name = str(route.get('subject_name') or '').strip()
+        return {'answer': json.dumps(get_avg_score(subject_name), ensure_ascii=False)}
 
-        return {'answer': json.dumps(output['data'], ensure_ascii=False)}
+    if tool_name == 'get_avg_overall_score':
+        return {'answer': json.dumps(get_avg_overall_score(), ensure_ascii=False)}
 
-    if tool_name == 'student_meta_tool':
-        student_name = str(route.get('student_name') or '')
-        output = student_meta_tool(student_name=student_name, subject_name=subject_name)
-        if 'error' in output:
-            return {'answer': output['error']}
-        return {'answer': json.dumps(output, ensure_ascii=False)}
-
-    # default to rag
-    question = str(route.get('question') or user_query)
-    output = rag_tool(question)
-    if 'error' in output:
-        return {'answer': output['error']}
-    return {'answer': output['answer']}
+    query = str(route.get('query') or user_query).strip()
+    return {'answer': json.dumps(search_rag(query=query), ensure_ascii=False)}
 
 
 def main() -> dict:
     """Run simple one-shot CLI input for local debugging."""
     user_input = input('user: ').strip()
-    return agent([{'role': 'user', 'content': user_input}])
+    return agent(user_input)
 
 
 if __name__ == '__main__':
