@@ -261,6 +261,7 @@ def validate_cases(
     """Validate case metadata and expected answers against generated dataset."""
     print(desc)
     ok = True
+    known_subjects = set(_STUDENTS_DF['subject_name'])
     for case in cases:
         if case.tool_name != 'get_top_students':
             ok = False
@@ -268,9 +269,10 @@ def validate_cases(
         if case.top_k <= 0:
             ok = False
             print(f'invalid top_k for idx={case.idx}: {case.top_k}')
-        if case.subject_name not in _STUDENTS_DF['subject_name'].unique():
+        if case.subject_name not in known_subjects:
             ok = False
             print(f'unknown subject for idx={case.idx}: {case.subject_name}')
+
         actual_answer = _expected_answer(case.subject_name, case.top_k)
         if case.expected_answer != actual_answer:
             ok = False

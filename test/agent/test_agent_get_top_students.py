@@ -48,7 +48,7 @@ pytestmark = [pytest.mark.llm, pytest.mark.e2e]
         ),
     ],
 )
-def test_agent_e2e_database_tool_top_students_simple(query: str, expected_answer: str):
+def test_agent_e2e_get_top_students_simple(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer
 
@@ -118,6 +118,6 @@ def test_agent_e2e_database_tool_top_students_simple(query: str, expected_answer
         ),
     ],
 )
-def test_agent_e2e_database_tool_top_students_complex(query: str, expected_answer: str):
+def test_agent_e2e_get_top_students_complex(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer

@@ -53,7 +53,11 @@ def agent(user_query: str) -> dict:
 
     if tool_name == 'get_avg_score':
         subject_name = str(route.get('subject_name') or '').strip()
-        return {'answer': json.dumps(get_avg_score(subject_name), ensure_ascii=False)}
+        result = get_avg_score(subject_name)
+        avg_score = result.get('avg_score')
+        if avg_score is None:
+            return {'answer': ''}
+        return {'answer': f'{float(avg_score):.1f}'}
 
     if tool_name == 'get_avg_overall_score':
         return {'answer': json.dumps(get_avg_overall_score(), ensure_ascii=False)}
