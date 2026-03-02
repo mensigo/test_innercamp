@@ -54,7 +54,7 @@ src/data
 
 Представлены в виде python функций в директории src/api.
 
-#### 1. get_students
+#### 1. get_top_students
 
 - на вход название предмета и топ-k (дефолт k=3)
 - возвращает информацию топ-k студентов, отсортированных по баллу
@@ -94,7 +94,7 @@ src/data
 Список тестов:
 ```
 test_agent_irrelevant           # нерелевантные запросы
-test_agent_get_students         # агент -> api 1
+test_agent_get_top_students         # агент -> api 1
 test_agent_get_avg_score        # агент -> api 2
 test_get_get_avg_overall_score  # агент -> api 3
 test_get_search_rag             # агент -> api 4
@@ -107,7 +107,7 @@ test
 ├── api
 │   ├── test_get_avg_overall_score.py
 │   ├── test_get_avg_score.py
-│   ├── test_get_students.py
+│   ├── test_get_top_students.py
 │   └── test_search_rag.py
 ├── llm
 │   └── test_utils.py
