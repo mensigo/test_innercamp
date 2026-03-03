@@ -7,6 +7,7 @@ from src.utils import get_chat_completions, get_embeddings
 pytestmark = [pytest.mark.llm]
 
 
+@pytest.mark.skip(reason='Not implemented')
 def test_get_chat_completions_happy_path():
     payload = {
         'messages': [

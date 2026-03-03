@@ -10,24 +10,21 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "requests>=2.32.5",
-    "python-dotenv<1.0.0",
-    "flask>=3.0.0",
     "faiss-cpu>=1,<1.9",
-    "numpy>=1.20,<2",
-    "loguru>=0.7.3",
-    "tqdm>=4",
-    "pandas>=2.3.3",
+    "numpy>= 1.22.4,<2",
+    "pandas>=2",
+    "pytest>=8.0.0",
+    "pytest-mock>=3.12.0",
+    "pytest-dotenv<1.0.0",
+    "python-dotenv<1.0.0",
 ]
 
 [dependency-groups]
 dev = [
+    "loguru>=0.7.3",
     "mypy>=1.19.1",
     "ruff>=0.14.14",
-    "pytest>=8.0.0",
-    "pytest-mock>=3.12.0",
-    "pytest-dotenv<1.0.0",
-    "bs4>=0.0.2",
-    "playwright>=1.57.0",
+    "tqdm>=4",
 ]
 
 [tool.setuptools.packages.find]
@@ -48,7 +45,7 @@ markers = [
     "agent: end-to-end tests through real agent flow",
     "api: tests for api 1-4 functions",
     "llm: test llm api (chat_completions, embeddings)",
-    "unit: test single components (fast, with mocks)",
+    "unit: test single components (fast)",
 
     # "integration: test multiple components interaction",
     # "rag: test rag related functions",

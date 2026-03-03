@@ -6,7 +6,7 @@ import pytest
 from src.prepare_data import build_faiss_index
 from src.api.search_rag import FAISS_INDEX_PATH, search_rag
 
-pytestmark = [pytest.mark.api, pytest.mark.llm]
+pytestmark = [pytest.mark.api, pytest.mark.unit]
 
 
 def test_search_rag_returns_empty_chunks_for_empty_query():

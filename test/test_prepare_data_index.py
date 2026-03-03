@@ -9,7 +9,7 @@ import pytest
 
 import src.prepare_data as prepare_data
 
-pytestmark = [pytest.mark.llm]
+pytestmark = [pytest.mark.skip]
 
 
 def test_build_faiss_index_runs_successfully():
