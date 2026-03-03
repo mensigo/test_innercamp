@@ -4,7 +4,7 @@ import pytest
 
 from src_example.agent import agent
 
-pytestmark = [pytest.mark.llm, pytest.mark.e2e]
+pytestmark = [pytest.mark.llm, pytest.mark.agent]
 
 
 # @pytest.mark.skip

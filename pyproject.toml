@@ -45,10 +45,10 @@ filterwarnings = [
     "ignore:builtin type .{,15} has no __module__ attribute:DeprecationWarning",
 ]
 markers = [
+    "agent: end-to-end tests through real agent flow",
     "api: tests for api 1-4 functions",
     "llm: test llm api (chat_completions, embeddings)",
     "unit: test single components (fast, with mocks)",
-    "e2e: end-to-end tests through real agent flow",
 
     # "integration: test multiple components interaction",
     # "rag: test rag related functions",
