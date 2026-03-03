@@ -10,7 +10,7 @@ from pathlib import Path
 import faiss
 import numpy as np
 
-from src.utils import post_embeddings
+from src.utils import get_embeddings
 
 SUBJECTS = [
     'Machine Learning',
@@ -118,15 +118,12 @@ def _load_markdown_chunks() -> list[str]:
     return chunks
 
 
-def _extract_embeddings(response: dict) -> list[list[float]]:
-    """Extract embeddings from API response ordered by source index."""
-    raw_data = response['data']
-    if not isinstance(raw_data, list):
-        raise RuntimeError('Embeddings response has invalid data')
-
-    embeddings = [
-        item['embedding'] for item in sorted(raw_data, key=lambda x: x['index'])
-    ]
+def _extract_embeddings(chunks: list[str]) -> list[list[float]]:
+    """Fetch embedding for each chunk one by one."""
+    embeddings: list[list[float]] = []
+    for chunk in chunks:
+        embedding = get_embeddings({'input': chunk}, verbose=True)
+        embeddings.append(embedding)
     return embeddings
 
 
@@ -142,8 +139,7 @@ def build_faiss_index(force: bool = True) -> Path:
             'No markdown files found in src/data/courses to build FAISS index'
         )
 
-    response = post_embeddings({'input': chunks}, verbose=True)
-    embeddings = _extract_embeddings(response)
+    embeddings = _extract_embeddings(chunks)
     if len(embeddings) != len(chunks):
         raise RuntimeError(
             f'Embeddings count mismatch: expected {len(chunks)}, got {len(embeddings)}'

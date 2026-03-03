@@ -8,7 +8,7 @@ from pathlib import Path
 import faiss
 import numpy as np
 
-from src.utils import post_embeddings
+from src.utils import get_embeddings
 
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
 COURSES_DIR = DATA_DIR / 'courses'
@@ -46,7 +46,7 @@ def _load_chunks() -> list[str]:
 def _embed_query(query: str) -> list[float]:
     """Получить эмбеддинг для текста запроса."""
     try:
-        return post_embeddings({'input': [query]})['data'][0]['embedding']
+        return get_embeddings({'input': query})
     except Exception as ex:
         raise RuntimeError(
             'search_rag // cannot extract embedding from response'

@@ -1,10 +1,9 @@
 """GigaChat API wrapper functions."""
 
 
-def post_chat_completions(payload: dict, **kwargs) -> dict:
+def get_chat_completions(payload: dict, **kwargs) -> dict:
     """
     Generate model response based on messages.
-    Sends POST request to /chat/completions endpoint.
     """
     # raise NotImplementedError('Not implemented')
     from src_example import post_chat_completions
@@ -12,12 +11,18 @@ def post_chat_completions(payload: dict, **kwargs) -> dict:
     return post_chat_completions(payload, **kwargs)
 
 
-def post_embeddings(payload: dict, **kwargs) -> dict:
+def get_embeddings(payload: dict, **kwargs) -> list[float]:
     """
-    Create vector embeddings for text.
-    Sends POST request to /embeddings endpoint.
+    Create vector embeddings for input text.
+
+    Example input: {'input': 'машинное обучение'}
+    Example output: [0.935546875, -0.092529296]
     """
     # raise NotImplementedError('Not implemented')
     from src_example import post_embeddings
 
-    return post_embeddings(payload, **kwargs)
+    assert 'input' in payload, 'input is required'
+    assert isinstance(payload['input'], str), 'input must be a string'
+
+    response = post_embeddings(payload, **kwargs)
+    return response['data'][0]['embedding']
