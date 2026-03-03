@@ -25,19 +25,24 @@ def _compute_subject_average(subject_name: str) -> float:
     return round(sum(scores) / len(scores), 1)
 
 
-def test_get_avg_score_returns_average_with_one_decimal():
-    ensure_students_csv(force=True, seed=42)
+@pytest.mark.parametrize(
+    'subject_name',
+    ['Machine Learning', 'Probability Theory', 'Optimization Theory'],
+)
+def test_get_avg_score_returns_average_with_one_decimal(subject_name: str):
+    ensure_students_csv()
 
-    result = get_avg_score('Machine Learning')
-    expected_avg_score = _compute_subject_average('Machine Learning')
+    result = get_avg_score(subject_name)
+    expected_avg_score = _compute_subject_average(subject_name)
 
     assert result == {'avg_score': expected_avg_score}
 
 
 def test_get_avg_score_returns_empty_for_invalid_subject():
-    ensure_students_csv(force=True, seed=42)
+    ensure_students_csv()
 
     assert get_avg_score('') == {}
+    assert get_avg_score('  ') == {}
     assert get_avg_score('Unknown Subject') == {}
     assert get_avg_score('machine learning') == {}
 

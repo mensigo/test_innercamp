@@ -7,7 +7,7 @@ from ._common import load_students_rows
 
 def get_top_students(subject_name: str, k: int = 3) -> list[dict[str, float | str]]:
     """Return top-k students for selected subject."""
-    if not subject_name:
+    if not subject_name.strip():
         return []
     if k < 1:
         return []

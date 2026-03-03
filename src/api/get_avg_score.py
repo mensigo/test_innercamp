@@ -7,7 +7,7 @@ from ._common import load_students_rows
 
 def get_avg_score(subject_name: str) -> dict[str, float]:
     """Return average score for selected subject."""
-    if not subject_name:
+    if not subject_name.strip():
         return {}
 
     scores: list[float] = []
@@ -17,4 +17,5 @@ def get_avg_score(subject_name: str) -> dict[str, float]:
 
     if not scores:
         return {}
+
     return {'avg_score': round(sum(scores) / len(scores), 1)}

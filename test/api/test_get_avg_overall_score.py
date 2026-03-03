@@ -25,7 +25,7 @@ def _compute_overall_average() -> float:
 
 
 def test_get_avg_overall_score_returns_average_with_one_decimal():
-    ensure_students_csv(force=True, seed=42)
+    ensure_students_csv()
 
     result = get_avg_overall_score()
     expected_avg_score = _compute_overall_average()
