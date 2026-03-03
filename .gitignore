@@ -16,7 +16,6 @@ wheels/
 
 certs
 patches
-*.csv
 *.log
 *.txt
 

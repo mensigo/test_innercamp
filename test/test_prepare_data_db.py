@@ -19,6 +19,28 @@ def test_build_students_rows_is_seed_deterministic():
     assert rows_a != rows_c
 
 
+def test_students_data_has_expected_shape_and_score_format():
+    """Students data has 30 unique students and valid score format."""
+    rows = build_students_rows()
+
+    subjects_by_student: dict[str, set[str]] = {}
+    for row in rows:
+        student_name = row['student_name']
+        subject_name = row['subject_name']
+        score = row['score']
+
+        subjects_by_student.setdefault(student_name, set()).add(subject_name)
+
+        score_value = float(score)
+        assert 3.0 <= score_value <= 5.0
+        integer_part, fractional_part = score.split('.')
+        assert integer_part in {'3', '4', '5'}
+        assert len(fractional_part) == 1 and fractional_part.isdigit()
+
+    assert len(subjects_by_student) == 30
+    assert all(len(subjects) == 2 for subjects in subjects_by_student.values())
+
+
 def test_top10_optimization_has_student_above_overall_average():
     """Top-10 Optimization contains at least one score above overall average."""
     rows = build_students_rows()
