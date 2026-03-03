@@ -21,6 +21,9 @@ patches
 *.txt
 
 plans/
+
 src_*/generated_data/
-src/data/faiss.index
-src/data/rag_chunks.json
+src/data/courses/faiss.index
+src/data/courses/rag_chunks.json
+
+test/conftest.py

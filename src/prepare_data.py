@@ -52,9 +52,10 @@ STUDENTS = [
 ]
 
 DATA_DIR = Path(__file__).resolve().parent / 'data'
+COURSES_DIR = DATA_DIR / 'courses'
 STUDENTS_CSV = DATA_DIR / 'students.csv'
-FAISS_INDEX_PATH = DATA_DIR / 'faiss.index'
-RAG_CHUNKS_PATH = DATA_DIR / 'rag_chunks.json'
+FAISS_INDEX_PATH = COURSES_DIR / 'faiss.index'
+RAG_CHUNKS_PATH = COURSES_DIR / 'rag_chunks.json'
 DEFAULT_SEED = 42
 
 
@@ -110,7 +111,7 @@ def ensure_students_csv(force: bool = False, seed: int = DEFAULT_SEED) -> Path:
 def _load_markdown_chunks() -> list[str]:
     """Load markdown files from data directory as one chunk per file."""
     chunks: list[str] = []
-    for file_path in sorted(DATA_DIR.glob('*.md')):
+    for file_path in sorted(COURSES_DIR.glob('*.md')):
         text = file_path.read_text(encoding='utf-8').strip()
         if text:
             chunks.append(text)
@@ -134,9 +135,12 @@ def build_faiss_index(force: bool = True) -> Path:
     if FAISS_INDEX_PATH.exists() and RAG_CHUNKS_PATH.exists() and not force:
         return FAISS_INDEX_PATH
 
+    COURSES_DIR.mkdir(parents=True, exist_ok=True)
     chunks = _load_markdown_chunks()
     if not chunks:
-        raise RuntimeError('No markdown files found in src/data to build FAISS index')
+        raise RuntimeError(
+            'No markdown files found in src/data/courses to build FAISS index'
+        )
 
     response = post_embeddings({'input': chunks}, verbose=True)
     embeddings = _extract_embeddings(response)

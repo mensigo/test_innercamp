@@ -11,8 +11,9 @@ import numpy as np
 from src.utils import post_embeddings
 
 DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
-FAISS_INDEX_PATH = DATA_DIR / 'faiss.index'
-RAG_CHUNKS_PATH = DATA_DIR / 'rag_chunks.json'
+COURSES_DIR = DATA_DIR / 'courses'
+FAISS_INDEX_PATH = COURSES_DIR / 'faiss.index'
+RAG_CHUNKS_PATH = COURSES_DIR / 'rag_chunks.json'
 
 
 def _load_chunks() -> list[str]:

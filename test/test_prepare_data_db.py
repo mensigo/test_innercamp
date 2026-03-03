@@ -21,7 +21,7 @@ def test_build_students_rows_is_seed_deterministic():
 
 def test_top10_optimization_has_student_above_overall_average():
     """Top-10 Optimization contains at least one score above overall average."""
-    rows = build_students_rows(seed=42)
+    rows = build_students_rows()
 
     all_scores = [float(row['score']) for row in rows]
     overall_avg_score = sum(all_scores) / len(all_scores)
