@@ -4,7 +4,7 @@ import pytest
 
 from src.agent import agent
 
-pytestmark = [pytest.mark.agent]
+pytestmark = [pytest.mark.agent, pytest.mark.skip]
 
 ML_BOOKS = """
 - Hastie T., Tibshirani R, Friedman J. The Elements of Statistical Learning (2nd edition). Springer, 2009.

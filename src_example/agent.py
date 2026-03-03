@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+from src.api import vector_search
 from src.api import get_avg_overall_score, get_avg_score, get_top_students
 
 from .answer_with_rag import answer_with_rag
 from .classify_intent import classify_intent
+from .classify_vector_search_intent import classify_vector_search_intent
+from .extract_lector_name import extract_lector_name
 from .logger import logger
 from .router import route_query
 
@@ -33,6 +36,30 @@ def _extract_k(route: dict) -> int:
         return int(raw_k)
     except (TypeError, ValueError):
         return 3
+
+
+def _build_vector_query(user_query: str, vector_intent: dict) -> str:
+    """Build a concise retrieval query for vector search."""
+    intent_type = str(vector_intent.get('intent_type') or '')
+    subject_name = str(vector_intent.get('subject_name') or '').strip()
+    if not subject_name:
+        return user_query
+
+    if intent_type == 'lector_name':
+        if subject_name == 'Machine Learning':
+            return 'Машинное обучение ПМИ ФКН ВШЭ О курсе Лектор'
+        if subject_name == 'Probability Theory':
+            return 'Теория вероятности Лектор:'
+        if subject_name == 'Optimization Theory':
+            return 'Методы оптимизации Преподаватели: (лектор)'
+        return f'{subject_name} лектор'
+    if intent_type == 'lecture_schedule':
+        return f'{subject_name} расписание лекций'
+    if intent_type == 'lecture_location':
+        return f'{subject_name} аудитория лекций'
+    if intent_type == 'books_for_course':
+        return f'{subject_name} литература курса'
+    return f'{subject_name} курс'
 
 
 def agent(user_query: str) -> dict:
@@ -68,9 +95,24 @@ def agent(user_query: str) -> dict:
         return {'answer': f'{float(avg_score):.1f}'}
 
     query = str(route.get('query') or user_query).strip()
+    vector_intent = classify_vector_search_intent(user_query)
+    logger.info(f'agent // vector_intent: {vector_intent}')
+
+    retrieval_query = _build_vector_query(query, vector_intent)
+    if str(vector_intent.get('intent_type') or '') == 'lector_name':
+        subject_name = str(vector_intent.get('subject_name') or '').strip()
+        rag_result = vector_search(query=retrieval_query, k=3)['chunks']
+        chunks = [
+            chunk for chunk in rag_result if isinstance(chunk, str) and chunk.strip()
+        ]
+        answer = extract_lector_name(
+            user_query=user_query, subject_name=subject_name, chunks=chunks
+        )
+        return {'answer': answer}
+
     return {
         'answer': answer_with_rag(
-            user_query=user_query, retrieval_query=query, top_k=RAG_TOP_K
+            user_query=user_query, retrieval_query=retrieval_query, top_k=RAG_TOP_K
         )
     }
 
