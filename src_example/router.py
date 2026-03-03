@@ -26,7 +26,7 @@ def route_query(user_query: str) -> dict:
                                 'get_top_students',
                                 'get_avg_score',
                                 'get_avg_overall_score',
-                                'search_rag',
+                                'vector_search',
                             ],
                         },
                         'subject_name': {'type': 'string'},
@@ -54,13 +54,13 @@ def route_query(user_query: str) -> dict:
 - перестановки слов: "среди студентов лучшие по ...", "...: лучшие студенты"
 
 ЖЕСТКИЙ ЗАПРЕТ:
-- Для запросов про лучших/топ студентов НИКОГДА не выбирай "search_rag".
+- Для запросов про лучших/топ студентов НИКОГДА не выбирай "vector_search".
 
 Точное соответствие типов запросов:
 - Лучшие студенты по предмету -> get_top_students (subject_name, k)
 - Средний балл по конкретному предмету -> get_avg_score (subject_name)
 - Средний балл по всем предметам/студентам -> get_avg_overall_score
-- Теоретический вопрос про курс/тему/концепт -> search_rag (query)
+- Теоретический вопрос про курс/тему/концепт -> vector_search (query)
 
 Чеклист перед выбором инструмента:
 1) Есть ли в запросе intent "лучшие/топ/рейтинг/лидеры" + "студенты/учащиеся"?
@@ -94,7 +94,7 @@ def route_query(user_query: str) -> dict:
     if 'error' in response:
         logger.warning(f'agent // route error: {response["error"]}')
         return {
-            'tool_name': 'search_rag',
+            'tool_name': 'vector_search',
             'query': user_query,
         }
 
@@ -148,4 +148,4 @@ def route_query(user_query: str) -> dict:
     if 'средн' in lowered:
         return {'tool_name': 'get_avg_overall_score'}
 
-    return {'tool_name': 'search_rag', 'query': user_query}
+    return {'tool_name': 'vector_search', 'query': user_query}

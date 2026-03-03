@@ -1,4 +1,4 @@
-"""E2E checks for search_rag answers through agent()."""
+"""E2E checks for vector_search answers through agent()."""
 
 import pytest
 
@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.agent]
         ('лектор по оптимизации', ''),
     ],
 )
-def test_agent_e2e_search_rag_simple(query: str, expected_answer: str):
+def test_agent_e2e_vector_search_simple(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer
 
@@ -40,6 +40,6 @@ def test_agent_e2e_search_rag_simple(query: str, expected_answer: str):
         ('лектор по оптимизации', ''),
     ],
 )
-def test_agent_e2e_search_rag_complex(query: str, expected_answer: str):
+def test_agent_e2e_vector_search_complex(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer

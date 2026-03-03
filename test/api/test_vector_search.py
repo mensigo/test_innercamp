@@ -4,22 +4,22 @@ import faiss
 import pytest
 
 from src.prepare_data import build_faiss_index
-from src.api.search_rag import FAISS_INDEX_PATH, search_rag
+from src.api.vector_search import FAISS_INDEX_PATH, vector_search
 
 pytestmark = [pytest.mark.api, pytest.mark.unit]
 
 
-def test_search_rag_returns_empty_chunks_for_empty_query():
-    assert search_rag('', k=2) == {'chunks': []}
+def test_vector_search_returns_empty_chunks_for_empty_query():
+    assert vector_search('', k=2) == {'chunks': []}
 
 
-def test_search_rag_returns_empty_chunks_for_invalid_k():
-    assert search_rag('lecturer', k=0) == {'chunks': []}
+def test_vector_search_returns_empty_chunks_for_invalid_k():
+    assert vector_search('lecturer', k=0) == {'chunks': []}
 
 
-def test_search_rag_returns_chunks_shape_for_regular_input():
+def test_vector_search_returns_chunks_shape_for_regular_input():
     build_faiss_index(force=False)
-    result = search_rag('машинное обучение', k=2)
+    result = vector_search('машинное обучение', k=2)
 
     assert isinstance(result, dict)
     assert 'chunks' in result
@@ -28,9 +28,9 @@ def test_search_rag_returns_chunks_shape_for_regular_input():
     assert all(isinstance(chunk, str) and chunk for chunk in result['chunks'])
 
 
-def test_search_rag_returns_at_most_available_chunks():
+def test_vector_search_returns_at_most_available_chunks():
     build_faiss_index(force=False)
-    result = search_rag('оптимизация', k=10_000)
+    result = vector_search('оптимизация', k=10_000)
     index = faiss.read_index(str(FAISS_INDEX_PATH))
 
     assert isinstance(result, dict)

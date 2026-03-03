@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from src.api import search_rag
+from src.api import vector_search
 
 from .config import config
 from .logger import logger
@@ -63,7 +63,7 @@ def _extract_answer_from_chunks(user_query: str, chunks: list[str]) -> str:
 
 def answer_with_rag(user_query: str, retrieval_query: str, top_k: int = 2) -> str:
     """Retrieve top-k chunks and extract answer with LLM."""
-    rag_result = search_rag(query=retrieval_query, k=top_k)
+    rag_result = vector_search(query=retrieval_query, k=top_k)
     raw_chunks = rag_result.get('chunks')
     if not isinstance(raw_chunks, list):
         return ''

@@ -1,4 +1,4 @@
-"""API function placeholder for RAG search."""
+"""API function placeholder for vector search."""
 
 from __future__ import annotations
 
@@ -20,25 +20,27 @@ def _load_chunks() -> list[str]:
     """Load stored RAG chunks."""
     if not RAG_CHUNKS_PATH.exists():
         raise RuntimeError(
-            'search_rag // chunks file is missing, run src/prepare_data.py first'
+            'vector_search // chunks file is missing, run src/prepare_data.py first'
         )
     try:
         payload = json.loads(RAG_CHUNKS_PATH.read_text(encoding='utf-8'))
     except (json.JSONDecodeError, OSError):
-        raise RuntimeError('search_rag // failed to read chunks metadata')
+        raise RuntimeError('vector_search // failed to read chunks metadata')
 
     if not isinstance(payload, dict):
-        raise RuntimeError('search_rag // chunks metadata must be a JSON object')
+        raise RuntimeError('vector_search // chunks metadata must be a JSON object')
 
     raw_chunks = payload.get('chunks', [])
     if not isinstance(raw_chunks, list):
-        raise RuntimeError('search_rag // chunks metadata has invalid "chunks" type')
+        raise RuntimeError('vector_search // chunks metadata has invalid "chunks" type')
     if not raw_chunks:
-        raise RuntimeError('search_rag // chunks list is empty')
+        raise RuntimeError('vector_search // chunks list is empty')
 
     chunks = [chunk for chunk in raw_chunks if isinstance(chunk, str)]
     if len(chunks) != len(raw_chunks):
-        raise RuntimeError('search_rag // chunks metadata contains non-string entries')
+        raise RuntimeError(
+            'vector_search // chunks metadata contains non-string entries'
+        )
 
     return chunks
 
@@ -49,11 +51,11 @@ def _embed_query(query: str) -> list[float]:
         return get_embeddings({'input': query})
     except Exception as ex:
         raise RuntimeError(
-            'search_rag // cannot extract embedding from response'
+            'vector_search // cannot extract embedding from response'
         ) from ex
 
 
-def search_rag(query: str, k: int = 2) -> dict[str, list[str]]:
+def vector_search(query: str, k: int = 2) -> dict[str, list[str]]:
     """Return top-k chunks for a query from RAG index."""
     if not query:
         return {'chunks': []}
@@ -62,7 +64,7 @@ def search_rag(query: str, k: int = 2) -> dict[str, list[str]]:
 
     if not FAISS_INDEX_PATH.exists():
         raise RuntimeError(
-            'search_rag // FAISS index is missing, run src/prepare_data.py first'
+            'vector_search // FAISS index is missing, run src/prepare_data.py first'
         )
 
     chunks = _load_chunks()
@@ -70,16 +72,16 @@ def search_rag(query: str, k: int = 2) -> dict[str, list[str]]:
     try:
         index = faiss.read_index(str(FAISS_INDEX_PATH))
     except RuntimeError as exc:
-        raise RuntimeError('search_rag // failed to load FAISS index') from exc
+        raise RuntimeError('vector_search // failed to load FAISS index') from exc
 
     embedding = _embed_query(query)
     if index.d != len(embedding):
         raise RuntimeError(
-            'search_rag // embedding dimension mismatch with FAISS index'
+            'vector_search // embedding dimension mismatch with FAISS index'
         )
     if index.ntotal != len(chunks):
         raise RuntimeError(
-            'search_rag // FAISS vectors count does not match chunks count'
+            'vector_search // FAISS vectors count does not match chunks count'
         )
 
     query_vector = np.array([embedding], dtype=np.float32)

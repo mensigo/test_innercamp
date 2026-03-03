@@ -88,7 +88,7 @@ student_name,subject_name,score
 - пример запроса: `get_avg_overall_score()`
 - пример ответа: `{ "avg_score": 4.0 }`
 
-#### 4. search_rag
+#### 4. vector_search
 
 - на вход строка-запрос и топ-k (дефолт k=2)
 - возвращает набор чанков
@@ -106,7 +106,7 @@ test_agent_irrelevant.py             # нерелевантные запросы
 test_agent_get_top_students.py       # агент -> api 1
 test_agent_get_avg_score.py          # агент -> api 2
 test_agent_get_avg_overall_score.py  # агент -> api 3
-test_agent_search_rag.py             # агент -> api 4
+test_agent_vector_search.py          # агент -> api 4
 ...
 ```
 
@@ -118,7 +118,7 @@ test
 │   ├── test_get_avg_overall_score.py
 │   ├── test_get_avg_score.py
 │   ├── test_get_top_students.py
-│   └── test_search_rag.py
+│   └── test_vector_search.py
 ├── llm
 │   └── test_utils.py
 ├── test_prepare_data_db.py
@@ -154,7 +154,7 @@ agent_result = {
 
 ### Эмбеддинги
 
-Работа API search_rag завязана на индексе, для построения которого нужны эмбеддинги.
+Работа API vector_search завязана на индексе, для построения которого нужны эмбеддинги.
 
 В директории src есть utils.py с функцией get_embeddings - ее нужно реализовать. Затем запустить src/prepare_data.py для построения индекса.
 
@@ -173,7 +173,7 @@ agent_result = {
 ## Общие требования
 
 - ходить за данными можно только через API
-- для работы API search_rag нужно построить индекс по .md документам
+- для работы API vector_search нужно построить индекс по .md документам
 
 ## На усмотрение разработчика (не проверяется тестами)
 

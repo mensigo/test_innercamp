@@ -44,8 +44,6 @@ def agent(user_query: str) -> dict:
     logger.info(f'agent // route: {route}')
 
     tool_name = str(route.get('tool_name') or '')
-    if tool_name == 'rag_search':
-        tool_name = 'search_rag'
     if tool_name == 'get_top_students':
         subject_name = str(route.get('subject_name') or '').strip()
         try:
