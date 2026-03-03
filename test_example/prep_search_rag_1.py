@@ -1,4 +1,4 @@
-"""Run lector-oriented search_rag cases and print retrieved chunk previews."""
+"""Run lector-oriented vector_search cases and print retrieved chunk previews."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import argparse
 
-from src.api import search_rag
+from src.api import vector_search
 
 TOP_K = 7
 PREVIEW_LIMIT = 160
@@ -16,102 +16,102 @@ COLOR_RESET = '\033[0m'
 
 
 @dataclass
-class SearchRagCase:
+class VectorSearchCase:
     idx: int
     user_query: str
     expected_answer: str
 
 
-CASES_SIMPLE_LECTOR: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_SIMPLE_LECTOR: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=1,
         user_query='лектор по мл',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=2,
         user_query='лектор по машинному обучению',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=3,
         user_query='лектор по машинке',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=4,
         user_query='лектор по теории вероятностей',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=5,
         user_query='лектор по теорверу',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=6,
         user_query='лектор по вероятностям',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=7,
         user_query='лектор по теории оптимизации',
         expected_answer='Кропотов Дмитрий Александрович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=8,
         user_query='лектор по оптимизации',
         expected_answer='Кропотов Дмитрий Александрович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=9,
         user_query='лектор по метоптам',
         expected_answer='Кропотов Дмитрий Александрович',
     ),
 ]
 
-CASES_COMPLEX_LECTOR: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_COMPLEX_LECTOR: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=10,
         user_query='кто лектор по дисциплине ml',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=11,
         user_query='лектором по мл является',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=12,
         user_query='машинка читает лекции кто',
         expected_answer='Соколов Евгений Андреевич',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=13,
         user_query='кто лектор по курсу probability theory',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=14,
         user_query='по вероятности ведет лекции кто',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=15,
         user_query='по теорверу лектор это',
         expected_answer='Семаков Сергей Львович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=16,
         user_query='кто ведет лекции по оптам',
         expected_answer='Кропотов Дмитрий Александрович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=17,
         user_query='кто по части лекций оптимизации',
         expected_answer='Кропотов Дмитрий Александрович',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=18,
         user_query='кто отвечает за лекционную часть оптимизации',
         expected_answer='Кропотов Дмитрий Александрович',
@@ -158,15 +158,17 @@ def _format_chunk_nums(chunk_nums: list[int]) -> str:
     return f'{first_num},{other_nums}'
 
 
-def print_cases(cases: list[SearchRagCase], title: str, show_full_chunk: bool = False):
-    """Run search_rag for each case and print chunk previews."""
+def print_cases(
+    cases: list[VectorSearchCase], title: str, show_full_chunk: bool = False
+):
+    """Run vector_search for each case and print chunk previews."""
     print(title)
     print(f'using top_k={TOP_K}\n')
 
     for case in cases:
         print(f'[{case.idx}] query: {case.user_query}')
         print('    ------------------------------------')
-        result = search_rag(query=case.user_query, k=TOP_K)
+        result = vector_search(query=case.user_query, k=TOP_K)
         chunks = result['chunks']
         print(f'    retrieved_chunks: {len(chunks)}')
         expected_chunk_nums = _find_expected_chunk_nums(
@@ -200,10 +202,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print_cases(
-        CASES_SIMPLE_LECTOR, 'search_rag simple (lectors)', show_full_chunk=args.print
+        CASES_SIMPLE_LECTOR,
+        'vector_search simple (lectors)',
+        show_full_chunk=args.print,
     )
     print_cases(
         CASES_COMPLEX_LECTOR,
-        'search_rag complex cases (lectors)',
+        'vector_search complex cases (lectors)',
         show_full_chunk=args.print,
     )

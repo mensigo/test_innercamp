@@ -1,4 +1,4 @@
-"""Run books-oriented search_rag cases and print retrieved chunk previews."""
+"""Run books-oriented vector_search cases and print retrieved chunk previews."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import argparse
 
-from src.api import search_rag
+from src.api import vector_search
 
 TOP_K = 7
 PREVIEW_LIMIT = 160
@@ -46,75 +46,75 @@ OPT_BOOKS = """
 
 
 @dataclass
-class SearchRagCase:
+class VectorSearchCase:
     idx: int
     user_query: str
     expected_answer: str
 
 
-CASES_ML_BOOKS: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_ML_BOOKS: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=1,
         user_query='какие книги почитать по мл',
         expected_answer=ML_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=2,
         user_query='литература по машинному обучению',
         expected_answer=ML_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=3,
         user_query='книжки по машинке',
         expected_answer=ML_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=4,
         user_query='что можно почитать по мл',
         expected_answer=ML_BOOKS,
     ),
 ]
 
-CASES_PROB_BOOKS: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_PROB_BOOKS: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=5,
         user_query='литература по теории вероятности',
         expected_answer=PROB_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=6,
         user_query='по теорверу книги',
         expected_answer=PROB_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=7,
         user_query='книги для ознакомления с курсом теорвера',
         expected_answer=PROB_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=8,
         user_query='по теорверу рекомендуемая литература',
         expected_answer=PROB_BOOKS,
     ),
 ]
 
-CASES_OPT_BOOKS: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_OPT_BOOKS: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=9,
         user_query='что можно почитать по курсу оптимизации',
         expected_answer=OPT_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=10,
         user_query='книги по оптам',
         expected_answer=OPT_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=11,
         user_query='оптимизация список книжек',
         expected_answer=OPT_BOOKS,
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=12,
         user_query='по оптимизации список рекомендованных произведений',
         expected_answer=OPT_BOOKS,
@@ -161,15 +161,17 @@ def _format_chunk_nums(chunk_nums: list[int]) -> str:
     return f'{first_num},{other_nums}'
 
 
-def print_cases(cases: list[SearchRagCase], title: str, show_full_chunk: bool = False):
-    """Run search_rag for each case and print chunk previews."""
+def print_cases(
+    cases: list[VectorSearchCase], title: str, show_full_chunk: bool = False
+):
+    """Run vector_search for each case and print chunk previews."""
     print(title)
     print(f'using top_k={TOP_K}\n')
 
     for case in cases:
         print(f'[{case.idx}] query: {case.user_query}')
         print('    ------------------------------------')
-        result = search_rag(query=case.user_query, k=TOP_K)
+        result = vector_search(query=case.user_query, k=TOP_K)
         chunks = result['chunks']
         print(f'    retrieved_chunks: {len(chunks)}')
         expected_chunk_nums = _find_expected_chunk_nums(
@@ -204,16 +206,16 @@ if __name__ == '__main__':
 
     print_cases(
         CASES_ML_BOOKS,
-        'search_rag ml (books)',
+        'vector_search ml (books)',
         show_full_chunk=args.print,
     )
     print_cases(
         CASES_PROB_BOOKS,
-        'search_rag prob (books)',
+        'vector_search prob (books)',
         show_full_chunk=args.print,
     )
     print_cases(
         CASES_OPT_BOOKS,
-        'search_rag opt (books)',
+        'vector_search opt (books)',
         show_full_chunk=args.print,
     )

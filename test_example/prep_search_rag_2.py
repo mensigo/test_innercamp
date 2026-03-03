@@ -1,4 +1,4 @@
-"""Run time-oriented search_rag cases and print retrieved chunk previews."""
+"""Run time-oriented vector_search cases and print retrieved chunk previews."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 import argparse
 
-from src.api import search_rag
+from src.api import vector_search
 
 TOP_K = 7
 PREVIEW_LIMIT = 160
@@ -16,100 +16,100 @@ COLOR_RESET = '\033[0m'
 
 
 @dataclass
-class SearchRagCase:
+class VectorSearchCase:
     idx: int
     user_query: str
     expected_answer: str
 
 
-CASES_ML_TIME: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_ML_TIME: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=1,
         user_query='когда проходят лекции по мл',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=2,
         user_query='время лекций по машинному обучению',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=3,
         user_query='лекции по машинке проходят время',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=4,
         user_query='расписание лекций по мл',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=5,
         user_query='лекционная часть по мл время',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=6,
         user_query='в какое время проходят лекции по машинке',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=7,
         user_query='в какой день и время лекции по мл',
         expected_answer='по пятницам, 11:10 - 12:30, в ауд. П8а.',
     ),
 ]
 
-CASES_PROB_TIME: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_PROB_TIME: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=8,
         user_query='когда проходят лекции по теории вероятности',
         expected_answer='| Пятница     | 10:30 – 12:00 | Все      | лекция      | R302',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=9,
         user_query='время лекций по теорверу',
         expected_answer='| Пятница     | 10:30 – 12:00 | Все      | лекция      | R302',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=10,
         user_query='день и время лекций по теорверу',
         expected_answer='| Пятница     | 10:30 – 12:00 | Все      | лекция      | R302',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=11,
         user_query='расписание лекций по вероятности',
         expected_answer='| Пятница     | 10:30 – 12:00 | Все      | лекция      | R302',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=12,
         user_query='лекционная часть по вероятности время',
         expected_answer='| Пятница     | 10:30 – 12:00 | Все      | лекция      | R302',
     ),
 ]
 
-CASES_OPT_TIME: list[SearchRagCase] = [
-    SearchRagCase(
+CASES_OPT_TIME: list[VectorSearchCase] = [
+    VectorSearchCase(
         idx=13,
         user_query='когда проходят лекции по оптимизации',
         expected_answer='вторник, лекция в 13:00 (ауд. П9)',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=14,
         user_query='время лекций по оптам',
         expected_answer='вторник, лекция в 13:00 (ауд. П9)',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=15,
         user_query='оптимизация день и время лекций',
         expected_answer='вторник, лекция в 13:00 (ауд. П9)',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=16,
         user_query='расписание лекций по оптимизации',
         expected_answer='вторник, лекция в 13:00 (ауд. П9)',
     ),
-    SearchRagCase(
+    VectorSearchCase(
         idx=17,
         user_query='по метоптам когда идут лекции',
         expected_answer='вторник, лекция в 13:00 (ауд. П9)',
@@ -156,15 +156,17 @@ def _format_chunk_nums(chunk_nums: list[int]) -> str:
     return f'{first_num},{other_nums}'
 
 
-def print_cases(cases: list[SearchRagCase], title: str, show_full_chunk: bool = False):
-    """Run search_rag for each case and print chunk previews."""
+def print_cases(
+    cases: list[VectorSearchCase], title: str, show_full_chunk: bool = False
+):
+    """Run vector_search for each case and print chunk previews."""
     print(title)
     print(f'using top_k={TOP_K}\n')
 
     for case in cases:
         print(f'[{case.idx}] query: {case.user_query}')
         print('    ------------------------------------')
-        result = search_rag(query=case.user_query, k=TOP_K)
+        result = vector_search(query=case.user_query, k=TOP_K)
         chunks = result['chunks']
         print(f'    retrieved_chunks: {len(chunks)}')
         expected_chunk_nums = _find_expected_chunk_nums(
@@ -199,16 +201,16 @@ if __name__ == '__main__':
 
     print_cases(
         CASES_ML_TIME,
-        'search_rag ml (time)',
+        'vector_search ml (time)',
         show_full_chunk=args.print,
     )
     print_cases(
         CASES_PROB_TIME,
-        'search_rag prob (time)',
+        'vector_search prob (time)',
         show_full_chunk=args.print,
     )
     print_cases(
         CASES_OPT_TIME,
-        'search_rag opt (time)',
+        'vector_search opt (time)',
         show_full_chunk=args.print,
     )

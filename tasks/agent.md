@@ -207,3 +207,4 @@ agent_result = {
 
 - Пример вызова API GigaChat на ИФТ с сертификатами [sigma_gigachat.md](sigma_gigachat.md)
 - Официальная документация API GigaChat [(ссылка)](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat)
+- Форматтер кода ruff (команда `ruff format`)
