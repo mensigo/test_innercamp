@@ -86,4 +86,7 @@ def classify_intent(user_query: str) -> bool:
     except (AttributeError, IndexError):
         return False
 
+    if not content:
+        return False
+
     return 'relevant' in content and 'irrelevant' not in content

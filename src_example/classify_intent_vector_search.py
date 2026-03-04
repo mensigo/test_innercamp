@@ -13,12 +13,7 @@ def _fallback_subject(user_query: str) -> str:
     """Infer canonical subject name with lightweight aliases."""
     return user_query
     # lowered = user_query.lower()
-    # if (
-    #     'ml' in lowered
-    #     or 'мл' in lowered
-    #     or 'машин' in lowered
-    #     or 'машинк' in lowered
-    # ):
+    # if 'ml' in lowered or 'мл' in lowered or 'машин' in lowered or 'машинк' in lowered:
     #     return 'Machine Learning'
     # if (
     #     'теорвер' in lowered
@@ -48,10 +43,23 @@ def _fallback_intent(user_query: str) -> str:
     #     or 'кто читает лекции' in lowered
     # ):
     #     return 'lecturer_name'
-    # if 'распис' in lowered or 'когда лекц' in lowered or 'время лекц' in lowered:
-    #     return 'lecture_schedule'
-    # if 'аудитор' in lowered or 'где лекц' in lowered or 'место лекц' in lowered:
+
+    # has_location_signal = (
+    #     'аудитор' in lowered
+    #     or 'в какой аудитории' in lowered
+    #     or 'какая аудитория' in lowered
+    #     or 'место' in lowered
+    #     or 'где' in lowered
+    # )
+    # has_schedule_signal = (
+    #     'распис' in lowered or 'когда' in lowered or 'время' in lowered
+    # )
+    # if has_location_signal and not has_schedule_signal:
     #     return 'lecture_location'
+    # if has_location_signal and has_schedule_signal:
+    #     return 'lecture_location'
+    # if has_schedule_signal:
+    #     return 'lecture_schedule'
     # if 'книг' in lowered or 'литератур' in lowered or 'учебник' in lowered:
     #     return 'books_for_course'
     # return 'other'
@@ -109,8 +117,27 @@ def classify_intent_vector_search(user_query: str) -> dict:
 
 Если предмет не распознан, верни пустой subject_name.
 Не путай lecture_schedule с lecture_location:
-- "в какое время", "в какой день", "когда проходят лекции", "расписание лекций" -> lecture_schedule
-- "где проходят лекции", "аудитория" -> lecture_location
+- lecture_schedule: вопросы про день/время лекций ("когда", "во сколько", "в какой день", "время лекций").
+- lecture_location: вопросы про место/аудиторию ("где", "в какой аудитории", "какая аудитория", "место лекций").
+- Слова "расписание лекций" сами по себе означают lecture_schedule.
+- Для lecture_location в запросе обязательно должен быть явный признак места:
+  "где", "аудитория", "место", "в какой аудитории", "какая аудитория".
+- Если в запросе есть слово "время" (или "во сколько"), выбирай lecture_schedule.
+- Формулировки типа "лекции ... проходят время" относятся к lecture_schedule.
+- Если в запросе одновременно есть слова о расписании и явный запрос места/аудитории
+  (например "по расписанию ... какая аудитория", "по расписанию ... проходят в какой аудитории"),
+  выбирай lecture_location.
+- Если есть фразы "какая аудитория" или "в какой аудитории", это ВСЕГДА lecture_location.
+- Формулировка "лекции ... проходят в ?" без запроса времени относится к lecture_location.
+- Пример: "расписание лекций по мл, какая аудитория" -> lecture_location.
+
+Примеры для самопроверки:
+- "расписание лекций по мл" -> lecture_schedule
+- "расписание лекций по оптимизации" -> lecture_schedule
+- "когда проходят лекции по теорверу" -> lecture_schedule
+- "где проходят лекции по мл" -> lecture_location
+- "аудитория лекций по машинному обучению" -> lecture_location
+- "по расписанию лекции по теорверу проходят в ?" -> lecture_location
 """
     payload = {
         'messages': [

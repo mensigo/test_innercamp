@@ -9,6 +9,7 @@ from .answer_with_rag import answer_with_rag
 from .classify_intent import classify_intent
 from .classify_intent_vector_search import classify_intent_vector_search
 from .extract_lecturer import extract_lecturer
+from .extract_location import extract_location
 from .extract_schedule import extract_schedule
 from .logger import logger
 from .router import route_query
@@ -45,6 +46,7 @@ def _build_vector_query(user_query: str, vector_intent: dict) -> str:
     subject_name = str(vector_intent.get('subject_name') or '').strip()
     if not subject_name:
         return user_query
+
     subject_label = {
         'Machine Learning': 'Машинное обучение',
         'Probability Theory': 'Теория вероятности',
@@ -70,6 +72,15 @@ def _build_vector_query(user_query: str, vector_intent: dict) -> str:
         return f'{subject_label} курс лекции расписание день время'
 
     if intent_type == 'lecture_location':
+        if subject_name == 'Machine Learning':
+            return 'Машинное обучение О курсе лекции аудитория место проведения'
+        if subject_name == 'Probability Theory':
+            return (
+                'Теория вероятности Расписание занятий День недели Время Группа '
+                'Тип занятия Аудитория Преподаватель Семинарист'
+            )
+        if subject_name == 'Optimization Theory':
+            return 'Методы оптимизации лекции аудитория место проведения'
         return f'{subject_label} курс лекции аудитория место'
 
     if intent_type == 'books_for_course':
@@ -136,6 +147,17 @@ def agent(user_query: str) -> dict:
             user_query=user_query, subject_name=subject_name, chunks=chunks
         )
         answer = answer.replace(' – ', ' - ').replace('–', '-')
+        return {'answer': answer}
+
+    if str(vector_intent.get('intent_type') or '') == 'lecture_location':
+        subject_name = str(vector_intent.get('subject_name') or '').strip()
+        rag_result = vector_search(query=retrieval_query, k=3).get('chunks', [])
+        chunks = [
+            chunk for chunk in rag_result if isinstance(chunk, str) and chunk.strip()
+        ]
+        answer = extract_location(
+            user_query=user_query, subject_name=subject_name, chunks=chunks
+        )
         return {'answer': answer}
 
     return {

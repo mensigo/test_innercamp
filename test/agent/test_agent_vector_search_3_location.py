@@ -4,7 +4,7 @@ import pytest
 
 from src.agent import agent
 
-pytestmark = [pytest.mark.agent, pytest.mark.skip]
+pytestmark = [pytest.mark.agent]
 
 
 @pytest.mark.parametrize(

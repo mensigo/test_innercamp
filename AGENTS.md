@@ -19,6 +19,14 @@ Prompt rules:
 Testing:
 - make sure to activate python `.venv` before running any tests
 - use `uv run pytest <file>` command to run any tests if needed
+- if test includes llm call, use `uv run pytest -n 4`
+
+Agent implementation:
+
+If you are asked to modify agent in src_example/, then follow rules:
+- try not to use regex, prefer prompts
+- try to extend existing approach smoothly
+- modify _build_vector_query strings if needed (just use strings with general info, do not include data from chunks, that can possibly change, i.e. lecturer, schedule, groups etc)
 
 # Project structure
 
