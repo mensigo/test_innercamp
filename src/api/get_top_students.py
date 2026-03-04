@@ -5,7 +5,7 @@ from __future__ import annotations
 from ._common import load_students_rows
 
 
-def get_top_students(subject_name: str, k: int = 3) -> list[dict[str, float | str]]:
+def get_top_students(subject_name: str, k: int = 2) -> list[dict[str, float | str]]:
     """Return top-k students for selected subject."""
     if not subject_name.strip():
         return []

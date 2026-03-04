@@ -93,7 +93,8 @@ def route_query(user_query: str) -> dict:
 
 Для get_top_students:
 - Если k явно указан в запросе, верни его.
-- Если не указан, верни k = 3.
+- Если вопрос про одного лучшего студента, верни k = 1.
+- Если k не указан и запрос не про одного, верни k = 2.
 """
     payload = {
         'messages': [
@@ -146,8 +147,9 @@ def route_query(user_query: str) -> dict:
         return {
             'tool_name': 'get_top_students',
             'subject_name': user_query,
-            'k': 3,
+            'k': 2,
         }
+
     if 'средн' in lowered and (
         'ml' in lowered
         or 'мл' in lowered

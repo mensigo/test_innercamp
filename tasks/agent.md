@@ -65,9 +65,9 @@ student_name,subject_name,score
 
 #### 1. get_top_students
 
-- на вход название предмета и топ-k (дефолт k=3)
+- на вход название предмета и топ-k (дефолт k=2)
 - возвращает информацию топ-k студентов, отсортированных по баллу (при равном балле - по имени)
-- пример запроса: `get_top_students("Machine Learning", k=2)`
+- пример запроса: `get_top_students("Machine Learning")`
 - пример ответа: `[ {"name": "Васильев Артем", "score": 4.9}, {"name": "Павлова Ирина", "score": 4.7} ]`
 - !! если название предмета пусто / нет в данных, то возвращает пустой список
 - !! если значение k < 1, то возвращает пустой список
@@ -92,7 +92,7 @@ student_name,subject_name,score
 
 - на вход строка-запрос и топ-k (дефолт k=2)
 - возвращает набор чанков
-- пример запроса: "лектор по мл"
+- пример запроса: `vector_search("лектор по мл")`
 - пример ответа: { "chunks":  [ "text1", "text2" ] }
 
 ### Тесты
@@ -102,12 +102,16 @@ student_name,subject_name,score
 Список тестов:
 
 ```
-test_agent_irrelevant.py             # нерелевантные запросы
-test_agent_get_top_students.py       # агент -> api 1
-test_agent_get_avg_score.py          # агент -> api 2
-test_agent_get_avg_overall_score.py  # агент -> api 3
-test_agent_vector_search.py          # агент -> api 4
-...
+test_agent_irrelevant.py                  # нерелевантные запросы
+
+test_agent_get_top_students.py            # агент -> api 1
+test_agent_get_avg_score.py               # агент -> api 2
+test_agent_get_avg_overall_score.py       # агент -> api 3
+
+test_agent_vector_search_1_lecturer.py    # агент -> api 4 (вопросы про лектора)
+test_agent_vector_search_2_schedule.py    # агент -> api 4 (вопросы про расписание лекций)
+test_agent_vector_search_3_location.py    # агент -> api 4 (вопросы про аудиторию лекций)
+test_agent_vector_search_4_literature.py  # агент -> api 4 (вопросы про список литературы)
 ```
 
 Также есть базовые тесты на проверку api, вызовов llm, их общей конфигурации (должны проходить всегда):
@@ -181,30 +185,36 @@ agent_result = {
 - использование LLM API на генерацию (gigachat, локальные модели)
 - ответы функции agent(), явно не прописанные в задании/тестах (например, если в запросе на топ студентов нет основного предмета: "топ студентов по философии")
 
-
 # Начало работы (пример)
 
-1. Установить питон (sberusersoft). Тестировалось на версии 3.11
+1. Выберите среду выполнения:
+   - Локально
+   - В песочнице (см. [sigma_sandbox.md](sigma_sandbox.md) для подробностей)
 
-2. Установить пакеты из pyproject.toml (можно создать вирт. окружение, можно ставить глобально)
-  2.1 Настроить index-url (sberosc). Подробнее см. [sigma_sberosc.md](sigma_sberosc.md)
-  2.2 Поставить пакеты через `pip install .` (advanced: можно через `uv sync`, если настроить uv)
+2. Установите Python (желательно через sberusersoft, рекомендованный - 3.11).
 
-3. Подготовить индекс с markdown документами
-  3.1 Написать реализацию функции `get_embeddings` в `src/utils.py`
-  3.2 Проверить через `pytest -m llm` (см. метки в pyproject.toml)
-  3.3 Построить индекс `python src/prepare_data.py`
+3. Установите зависимости из `pyproject.toml`:
+   - Можно использовать виртуальное окружение или глобальную установку.
+   - Настройте index-url для sberosc (см. [sigma_sberosc.md](sigma_sberosc.md)).
+   - Установите пакеты через `pip install .`
+   - Опционально: можно через `uv sync`, если uv настроен.
 
-4. Прогнать тесты
-  4.1 Базовые функции: `pytest -m "api or unit"` (должны пройти успешно)
-  4.2 Функция agent: `pytest -m agent` (должны упасть, тк функция agent() еще не реализована)
+4. Подготовьте индекс для работы с markdown-документами:
+   - Реализуйте функцию `get_embeddings` в `src/utils.py`.
+   - Проверьте реализацию через `pytest -m llm` (все pytest метки есть в pyproject.toml).
+   - Постройте индекс командой: `python src/prepare_data.py`.
+
+5. Запустите тесты:
+   - Проверьте базовые функции командой: `pytest -m "api or unit"` (эти тесты должны пройти успешно).
+   - Проверьте функцию agent командой: `pytest -m agent` (эти тесты должны падать, т.к. функция agent() еще не реализована).
+   - Опционально: можно запускать отдельные тестовые файлы или выбирать нужные тесты с помощью параметра `-k`. Например, команда `pytest -k search` выполнит только те тесты, в названии которых есть подстрока `search`.
 
 Теперь можно начинать добавлять логику агента в src/agent.py, ориентируясь на кейсы из тестов test/agent.
 **Критерий** прохождения задания: все тесты из директории test/ проходят успешно (запуск `pytest`).
 
-
 # Полезные материалы
 
 - Пример вызова API GigaChat на ИФТ с сертификатами [sigma_gigachat.md](sigma_gigachat.md)
-- Официальная документация API GigaChat [(ссылка)](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat)
-- Форматтер кода ruff (команда `ruff format`)
+- Официальная документация API GigaChat ([ссылка](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat))
+- Документация ruff: форматирование кода ( [ссылка](https://docs.astral.sh/ruff/formatter/))
+- Документация pytest: работа с метками ([ссылка](https://docs.pytest.org/en/stable/example/markers.html))
