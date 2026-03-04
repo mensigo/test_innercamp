@@ -1,4 +1,4 @@
-"""E2E checks for vector_search lector-oriented cases through agent()."""
+"""E2E checks for vector_search lecturer-oriented cases through agent()."""
 
 import pytest
 
@@ -21,7 +21,7 @@ pytestmark = [pytest.mark.agent]
         ('лектор по метоптам', 'Кропотов Дмитрий Александрович'),
     ],
 )
-def test_agent_e2e_vector_search_simple_lector(query: str, expected_answer: str):
+def test_agent_e2e_vector_search_simple_lecturer(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer
 
@@ -43,6 +43,6 @@ def test_agent_e2e_vector_search_simple_lector(query: str, expected_answer: str)
         ),
     ],
 )
-def test_agent_e2e_vector_search_complex_lector(query: str, expected_answer: str):
+def test_agent_e2e_vector_search_complex_lecturer(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer

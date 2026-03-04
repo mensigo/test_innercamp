@@ -21,7 +21,7 @@ def _read_response_text(response: dict) -> str:
     return content.strip()
 
 
-def extract_lector_name(user_query: str, subject_name: str, chunks: list[str]) -> str:
+def extract_lecturer(user_query: str, subject_name: str, chunks: list[str]) -> str:
     """Extract only lecturer full name from retrieved chunks."""
     if not chunks:
         return ''
@@ -57,6 +57,6 @@ def extract_lector_name(user_query: str, subject_name: str, chunks: list[str]) -
     }
     response = post_chat_completions(payload, verbose=config.debug)
     if 'error' in response:
-        logger.warning(f'agent // lector extract error: {response["error"]}')
+        logger.warning(f'agent // lecturer extract error: {response["error"]}')
         return ''
     return _read_response_text(response)

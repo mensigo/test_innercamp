@@ -22,7 +22,7 @@ class VectorSearchCase:
     expected_answer: str
 
 
-CASES_SIMPLE_LECTOR: list[VectorSearchCase] = [
+CASES_SIMPLE_LECTURER: list[VectorSearchCase] = [
     VectorSearchCase(
         idx=1,
         user_query='лектор по мл',
@@ -70,7 +70,7 @@ CASES_SIMPLE_LECTOR: list[VectorSearchCase] = [
     ),
 ]
 
-CASES_COMPLEX_LECTOR: list[VectorSearchCase] = [
+CASES_COMPLEX_LECTURER: list[VectorSearchCase] = [
     VectorSearchCase(
         idx=10,
         user_query='кто лектор по дисциплине ml',
@@ -202,12 +202,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     print_cases(
-        CASES_SIMPLE_LECTOR,
-        'vector_search simple (lectors)',
+        CASES_SIMPLE_LECTURER,
+        'vector_search simple (lecturers)',
         show_full_chunk=args.print,
     )
     print_cases(
-        CASES_COMPLEX_LECTOR,
-        'vector_search complex cases (lectors)',
+        CASES_COMPLEX_LECTURER,
+        'vector_search complex cases (lecturers)',
         show_full_chunk=args.print,
     )

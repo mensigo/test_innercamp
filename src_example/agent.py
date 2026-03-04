@@ -7,8 +7,9 @@ from src.api import get_avg_overall_score, get_avg_score, get_top_students
 
 from .answer_with_rag import answer_with_rag
 from .classify_intent import classify_intent
-from .classify_vector_search_intent import classify_vector_search_intent
-from .extract_lector_name import extract_lector_name
+from .classify_intent_vector_search import classify_intent_vector_search
+from .extract_lecturer import extract_lecturer
+from .extract_schedule import extract_schedule
 from .logger import logger
 from .router import route_query
 
@@ -44,22 +45,37 @@ def _build_vector_query(user_query: str, vector_intent: dict) -> str:
     subject_name = str(vector_intent.get('subject_name') or '').strip()
     if not subject_name:
         return user_query
+    subject_label = {
+        'Machine Learning': 'Машинное обучение',
+        'Probability Theory': 'Теория вероятности',
+        'Optimization Theory': 'Методы оптимизации',
+    }.get(subject_name, subject_name)
 
-    if intent_type == 'lector_name':
+    if intent_type == 'lecturer_name':
         if subject_name == 'Machine Learning':
             return 'Машинное обучение ПМИ ФКН ВШЭ О курсе Лектор'
         if subject_name == 'Probability Theory':
-            return 'Теория вероятности Лектор:'
+            return 'Теория вероятности Лектор'
         if subject_name == 'Optimization Theory':
-            return 'Методы оптимизации Преподаватели: (лектор)'
-        return f'{subject_name} лектор'
+            return 'Методы оптимизации Преподаватели лектор'
+        return f'{subject_label} курс лекции лектор преподаватель'
+
     if intent_type == 'lecture_schedule':
-        return f'{subject_name} расписание лекций'
+        if subject_name == 'Machine Learning':
+            return 'Машинное обучение О курсе Семинары Правила выставления оценок'
+        if subject_name == 'Probability Theory':
+            return 'Теория вероятности Расписание занятий Тип занятия Аудитория Преподаватель'
+        if subject_name == 'Optimization Theory':
+            return 'Методы оптимизации Группа Расписание Инвайт anytask'
+        return f'{subject_label} курс лекции расписание день время'
+
     if intent_type == 'lecture_location':
-        return f'{subject_name} аудитория лекций'
+        return f'{subject_label} курс лекции аудитория место'
+
     if intent_type == 'books_for_course':
-        return f'{subject_name} литература курса'
-    return f'{subject_name} курс'
+        return f'{subject_label} курс литература книги учебники'
+
+    return f'{subject_label} курс'
 
 
 def agent(user_query: str) -> dict:
@@ -95,19 +111,31 @@ def agent(user_query: str) -> dict:
         return {'answer': f'{float(avg_score):.1f}'}
 
     query = str(route.get('query') or user_query).strip()
-    vector_intent = classify_vector_search_intent(user_query)
+    vector_intent = classify_intent_vector_search(user_query)
     logger.info(f'agent // vector_intent: {vector_intent}')
 
     retrieval_query = _build_vector_query(query, vector_intent)
-    if str(vector_intent.get('intent_type') or '') == 'lector_name':
+    if str(vector_intent.get('intent_type') or '') == 'lecturer_name':
         subject_name = str(vector_intent.get('subject_name') or '').strip()
         rag_result = vector_search(query=retrieval_query, k=3)['chunks']
         chunks = [
             chunk for chunk in rag_result if isinstance(chunk, str) and chunk.strip()
         ]
-        answer = extract_lector_name(
+        answer = extract_lecturer(
             user_query=user_query, subject_name=subject_name, chunks=chunks
         )
+        return {'answer': answer}
+
+    if str(vector_intent.get('intent_type') or '') == 'lecture_schedule':
+        subject_name = str(vector_intent.get('subject_name') or '').strip()
+        rag_result = vector_search(query=retrieval_query, k=3).get('chunks', [])
+        chunks = [
+            chunk for chunk in rag_result if isinstance(chunk, str) and chunk.strip()
+        ]
+        answer = extract_schedule(
+            user_query=user_query, subject_name=subject_name, chunks=chunks
+        )
+        answer = answer.replace(' – ', ' - ').replace('–', '-')
         return {'answer': answer}
 
     return {

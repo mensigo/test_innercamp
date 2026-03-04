@@ -47,7 +47,7 @@ def _fallback_intent(user_query: str) -> str:
     #     or 'кто ведёт лекции' in lowered
     #     or 'кто читает лекции' in lowered
     # ):
-    #     return 'lector_name'
+    #     return 'lecturer_name'
     # if 'распис' in lowered or 'когда лекц' in lowered or 'время лекц' in lowered:
     #     return 'lecture_schedule'
     # if 'аудитор' in lowered or 'где лекц' in lowered or 'место лекц' in lowered:
@@ -57,7 +57,7 @@ def _fallback_intent(user_query: str) -> str:
     # return 'other'
 
 
-def classify_vector_search_intent(user_query: str) -> dict:
+def classify_intent_vector_search(user_query: str) -> dict:
     """Extract intent and canonical subject for vector search requests."""
     tools = [
         {
@@ -71,7 +71,7 @@ def classify_vector_search_intent(user_query: str) -> dict:
                         'intent_type': {
                             'type': 'string',
                             'enum': [
-                                'lector_name',
+                                'lecturer_name',
                                 'lecture_schedule',
                                 'lecture_location',
                                 'books_for_course',
@@ -91,8 +91,8 @@ def classify_vector_search_intent(user_query: str) -> dict:
 Верни только function call.
 
 Допустимые intent_type:
-- lector_name (кто лектор/кто ведет лекции)
-- lecture_schedule (когда лекции, расписание)
+- lecturer_name (кто лектор/кто ведет лекции)
+- lecture_schedule (когда лекции, расписание, день/время лекций, лекционная часть по времени)
 - lecture_location (где лекции, аудитория)
 - books_for_course (книги/литература/учебники курса)
 - other
@@ -108,6 +108,9 @@ def classify_vector_search_intent(user_query: str) -> dict:
 - "оптимизация", "метопты", "метоптам", "optimization theory" -> "Optimization Theory"
 
 Если предмет не распознан, верни пустой subject_name.
+Не путай lecture_schedule с lecture_location:
+- "в какое время", "в какой день", "когда проходят лекции", "расписание лекций" -> lecture_schedule
+- "где проходят лекции", "аудитория" -> lecture_location
 """
     payload = {
         'messages': [
