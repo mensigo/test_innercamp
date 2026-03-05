@@ -26,6 +26,27 @@ ANSI_RESET = '\033[0m'
 students_df = None
 
 
+def _collect_chunk_titles_with_substring(
+    rag_result: dict[str, list[str]], needle: str
+) -> list[str]:
+    """Collect first lines of chunks containing substring."""
+    needle_lower = needle.lower()
+    matched_chunk_titles: list[str] = []
+    for chunk in rag_result['chunks']:
+        if needle_lower not in chunk.lower():
+            continue
+        first_row = chunk.strip().splitlines()[0].strip()
+        matched_chunk_titles.append(first_row)
+    return matched_chunk_titles
+
+
+def _format_top_students(top_students: list[dict[str, float | str]]) -> str:
+    """Format top students into readable one-line string."""
+    return ', '.join(
+        f'{row["name"]} ({float(row["score"]):.1f})' for row in top_students
+    )
+
+
 def run_case_1():
     """
     Multihop case 1: lecturer of the hardest core course.
@@ -59,13 +80,7 @@ def run_case_1():
     rag_result = vector_search(query=rag_query, k=20)
     print(f'\naction_4: vector_search(query={rag_query!r}, k=...)')
 
-    matched_chunk_titles: list[str] = []
-    for chunk in rag_result['chunks']:
-        if lecturer.lower() not in chunk.lower():
-            continue
-        first_row = chunk.strip().splitlines()[0].strip()
-        matched_chunk_titles.append(first_row)
-
+    matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, lecturer)
     print(f'action_4: chunk titles with lecturer substring -> {matched_chunk_titles}')
 
     print(
@@ -108,19 +123,13 @@ def run_case_2():
     )
 
     # get answer globally
-    lecturer = COURSE_TO_LECTURER.get(simplest_subject, 'NOT_FOUND')
+    lecturer = COURSE_TO_LECTURER[simplest_subject]
 
     rag_query = f'кто лектор по курсу {simplest_subject}'
     rag_result = vector_search(query=rag_query, k=20)
     print(f'\naction_4: vector_search(query={rag_query!r}, k=...)')
 
-    matched_chunk_titles: list[str] = []
-    for chunk in rag_result['chunks']:
-        if lecturer.lower() not in chunk.lower():
-            continue
-        first_row = chunk.strip().splitlines()[0].strip()
-        matched_chunk_titles.append(first_row)
-
+    matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, lecturer)
     print(f'action_4: chunk titles with lecturer substring -> {matched_chunk_titles}')
 
     expected_result = {'subject': simplest_subject, 'lecturer': lecturer}
@@ -179,12 +188,9 @@ def run_case_4():
     resolved_subject = 'Machine Learning'
     lecturer_short = 'Соколов Евгений'
 
-    matched_chunk_titles: list[str] = []
-    for chunk in rag_result['chunks']:
-        if lecturer_short.lower() not in chunk.lower():
-            continue
-        first_row = chunk.strip().splitlines()[0].strip()
-        matched_chunk_titles.append(first_row)
+    matched_chunk_titles = _collect_chunk_titles_with_substring(
+        rag_result, lecturer_short
+    )
 
     print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
     print(
@@ -192,14 +198,12 @@ def run_case_4():
     )
 
     top_students = get_top_students(resolved_subject)
-    top_students_pretty = ', '.join(
-        f'{row["name"]} ({float(row["score"]):.1f})' for row in top_students
-    )
     print(
         '\naction_2: '
         f'get_top_students(subject_name={resolved_subject!r}) -> {top_students}'
     )
 
+    top_students_pretty = _format_top_students(top_students)
     expected_result = {
         'subject': resolved_subject,
         'top_students': top_students_pretty,
@@ -209,108 +213,74 @@ def run_case_4():
     print()
 
 
-# WIP
 def run_case_5():
     """
     Multihop case 5: best students for course with seminarist Maksim Kaledin.
     """
     user_query = 'лучшие студенты по курсу при участии семинариста Каледина Максима'
-    print(f'{ANSI_BOLD}{ANSI_CYAN}[4] Вопрос 4 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'{ANSI_BOLD}{ANSI_CYAN}[5] Вопрос 5 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
     print(f'\nuser_query: {user_query}')
 
     # Каледин Максим is seminarist of Probability Theory AND lecturer of Random Processes
     seminarist = 'Каледин Максим'
-    lecturer = 'Семаков Сергей Львович'
     subject = 'Probability Theory'
 
     rag_query = 'по какому курсу семинарист Каледин Максим'
     rag_result = vector_search(query=rag_query, k=24)
     print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
-    # TODO reorder seminarist name in Random Processes
-    seminarist_lower = seminarist.lower()
-    ll = []
-    for chunk in rag_result['chunks']:
-        if seminarist_lower in chunk.lower():
-            first_line = chunk.strip().split('\n', 1)[0]
-            ll.append(first_line)
 
-    print(
-        '\naction_1: chunk titles containing seminarist substring: {}'.format(
-            ', '.join(ll)
-        )
-    )
+    matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, seminarist)
+    print(f'action_1: chunk titles with seminarist substring -> {matched_chunk_titles}')
     print(f'action_1: resolve subject from RAG chunks -> {subject}')
 
     top_students = get_top_students(subject)
     print(f'\naction_2: get_top_students(subject_name={subject!r}) -> {top_students}')
 
-    expected_result = {'subject': subject, 'top_students': top_students}
+    print(
+        f'\n(sanity check): len(matched_chunk_titles) > 1 -> {len(matched_chunk_titles) > 0}'
+    )
+    assert len(matched_chunk_titles) > 1, (
+        'len(matched_chunk_titles) should be greater than 1'
+    )
+
+    top_students_pretty = _format_top_students(top_students)
+    expected_result = {'subject': subject, 'top_students': top_students_pretty}
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
     print('-' * 80)
     print()
 
 
-# WIP
 def run_case_6():
-    """Case 5: surnames of top students for Tuesday lecture in P9."""
+    """
+    Multihop case 6: surnames of top students for Tuesday lecture in P9.
+    """
     user_query = (
         'фамилии топ студентов, которых можно застать во вторник на лекции в П9'
     )
-    print(f'{ANSI_CYAN}[5] Вопрос 5 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'{ANSI_CYAN}[6] Вопрос 6 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
     print(f'\nuser_query: {user_query}')
 
-    rag_query = 'какие основные курсы читаются во вторник на лекции в П9'
-    rag_result = vector_search(query=rag_query, k=7)
+    resolved_subject = 'Optimization Theory'
+
+    rag_query = 'лекция во вторник в аудитории П9'
+    rag_result = vector_search(query=rag_query, k=24)
+    print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
+
+    matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, 'П9')
+    print(f'action_1: chunk titles with location substring -> {matched_chunk_titles}')
+    print(f'action_1: resolve subject from RAG chunks -> {resolved_subject}')
+
+    top_students = get_top_students(resolved_subject)
     print(
-        f'\naction_1: vector_search(query={rag_query!r}, k=7) -> chunks={len(rag_result["chunks"])}'
+        f'\naction_2: get_top_students(subject_name={resolved_subject!r}) -> {top_students}'
     )
 
-    resolved_subject = 'NOT_FOUND'
-    for chunk in rag_result['chunks']:
-        lower_chunk = chunk.lower()
-        if (
-            'вторник' in lower_chunk
-            and 'п9' in lower_chunk
-            and 'оптимизац' in lower_chunk
-        ):
-            resolved_subject = 'Optimization Theory'
-            break
-        if (
-            'вторник' in lower_chunk
-            and 'п9' in lower_chunk
-            and 'машинное обучение' in lower_chunk
-        ):
-            resolved_subject = 'Machine Learning'
-            break
-        if (
-            'вторник' in lower_chunk
-            and 'п9' in lower_chunk
-            and 'теория вероят' in lower_chunk
-        ):
-            resolved_subject = 'Probability Theory'
-            break
-    print(f'\naction_2: resolve subject from RAG chunks -> {resolved_subject}')
-
-    top_students = []
-    if resolved_subject != 'NOT_FOUND':
-        top_students = get_top_students(resolved_subject, k=5)
-    print(
-        f'\naction_3: get_top_students(subject_name={resolved_subject!r}, k=5) -> {top_students}'
-    )
-
-    surnames: list[str] = []
-    for row in top_students:
-        name = str(row['name'])
-        parts = name.split()
-        if parts:
-            surnames.append(parts[0])
-    print(f'\naction_4: extract surnames from top students -> {surnames}')
-
+    top_students_surnames = ', '.join(row['name'].split()[0] for row in top_students)
     expected_result = {
         'subject': resolved_subject,
-        'top_student_surnames': surnames,
+        'top_student_surnames': top_students_surnames,
     }
-    print(f'expected_result: {expected_result}\n')
+    print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
     print('-' * 80)
     print()
 
@@ -322,6 +292,7 @@ if __name__ == '__main__':
     parser.add_argument('-3', dest='case_3', action='store_true')
     parser.add_argument('-4', dest='case_4', action='store_true')
     parser.add_argument('-5', dest='case_5', action='store_true')
+    parser.add_argument('-6', dest='case_6', action='store_true')
     args = parser.parse_args()
 
     students_df = pd.read_csv('src/data/students.csv')
@@ -346,6 +317,8 @@ if __name__ == '__main__':
         selected_cases.append(4)
     if args.case_5:
         selected_cases.append(5)
+    if args.case_6:
+        selected_cases.append(6)
 
     if not selected_cases:
         selected_cases = list(range(1, 7))
