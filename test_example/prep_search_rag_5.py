@@ -47,6 +47,18 @@ def _format_top_students(top_students: list[dict[str, float | str]]) -> str:
     )
 
 
+def _assert_matched_chunk_titles(matched_chunk_titles: list[str], min_count: int = 1):
+    """Validate collected chunk titles count."""
+    print(
+        '\n(sanity check): len(matched_chunk_titles) = {} > {} -> {}'.format(
+            len(matched_chunk_titles), min_count, len(matched_chunk_titles) > min_count
+        )
+    )
+    assert len(matched_chunk_titles) > min_count, (
+        'len(matched_chunk_titles) should be greater than {}'.format(min_count)
+    )
+
+
 def run_case_1():
     """
     Multihop case 1: lecturer of the hardest core course.
@@ -83,12 +95,7 @@ def run_case_1():
     matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, lecturer)
     print(f'action_4: chunk titles with lecturer substring -> {matched_chunk_titles}')
 
-    print(
-        f'\n(sanity check): len(matched_chunk_titles) > 1 -> {len(matched_chunk_titles) > 0}'
-    )
-    assert len(matched_chunk_titles) > 1, (
-        'len(matched_chunk_titles) should be greater than 1'
-    )
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
 
     expected_result = {'subject': hardest_subject, 'lecturer': lecturer}
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
@@ -236,12 +243,7 @@ def run_case_5():
     top_students = get_top_students(subject)
     print(f'\naction_2: get_top_students(subject_name={subject!r}) -> {top_students}')
 
-    print(
-        f'\n(sanity check): len(matched_chunk_titles) > 1 -> {len(matched_chunk_titles) > 0}'
-    )
-    assert len(matched_chunk_titles) > 1, (
-        'len(matched_chunk_titles) should be greater than 1'
-    )
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
 
     top_students_pretty = _format_top_students(top_students)
     expected_result = {'subject': subject, 'top_students': top_students_pretty}
@@ -260,6 +262,7 @@ def run_case_6():
     print(f'{ANSI_CYAN}[6] Вопрос 6 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
     print(f'\nuser_query: {user_query}')
 
+    # true values
     resolved_subject = 'Optimization Theory'
 
     rag_query = 'лекция во вторник в аудитории П9'
@@ -275,10 +278,52 @@ def run_case_6():
         f'\naction_2: get_top_students(subject_name={resolved_subject!r}) -> {top_students}'
     )
 
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+
     top_students_surnames = ', '.join(row['name'].split()[0] for row in top_students)
     expected_result = {
         'subject': resolved_subject,
         'top_student_surnames': top_students_surnames,
+    }
+    print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
+    print('-' * 80)
+    print()
+
+
+def run_case_7():
+    """
+    Multihop case 7: average score for subject with book author Semakov
+    """
+    user_query = 'средний балл по предмету, у которого автор учебника Семаков'
+    print(f'{ANSI_CYAN}[7] Вопрос 7 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'\nuser_query: {user_query}')
+
+    # true values
+    resolved_subject = 'Probability Theory'
+    author_short = 'Семаков'
+
+    rag_query = 'учебник Семаков'
+    rag_result = vector_search(query=rag_query, k=24)
+    print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
+
+    matched_chunk_titles = _collect_chunk_titles_with_substring(
+        rag_result, author_short
+    )
+    print(
+        f'action_1: chunk titles with author_short substring -> {matched_chunk_titles}'
+    )
+    print(f'action_1: resolve subject from RAG chunks -> {resolved_subject}')
+
+    avg_score = get_avg_score(resolved_subject)
+    print(
+        f'\naction_2: get_avg_score(subject_name={resolved_subject!r}) -> {avg_score}'
+    )
+
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+
+    expected_result = {
+        'subject': resolved_subject,
+        'avg_score': avg_score['avg_score'],
     }
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
     print('-' * 80)
@@ -293,6 +338,7 @@ if __name__ == '__main__':
     parser.add_argument('-4', dest='case_4', action='store_true')
     parser.add_argument('-5', dest='case_5', action='store_true')
     parser.add_argument('-6', dest='case_6', action='store_true')
+    parser.add_argument('-7', dest='case_7', action='store_true')
     args = parser.parse_args()
 
     students_df = pd.read_csv('src/data/students.csv')
@@ -319,6 +365,8 @@ if __name__ == '__main__':
         selected_cases.append(5)
     if args.case_6:
         selected_cases.append(6)
+    if args.case_7:
+        selected_cases.append(7)
 
     if not selected_cases:
         selected_cases = list(range(1, 7))
@@ -335,3 +383,5 @@ if __name__ == '__main__':
         run_case_5()
     if 6 in selected_cases:
         run_case_6()
+    if 7 in selected_cases:
+        run_case_7()
