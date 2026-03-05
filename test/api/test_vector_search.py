@@ -6,7 +6,7 @@ import pytest
 from src.prepare_data import build_faiss_index
 from src.api.vector_search import FAISS_INDEX_PATH, vector_search
 
-pytestmark = [pytest.mark.api, pytest.mark.unit]
+pytestmark = [pytest.mark.api]
 
 
 def test_vector_search_returns_empty_chunks_for_empty_query():

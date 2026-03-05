@@ -57,7 +57,6 @@ student_name,subject_name,score
 
 В данных students.csv всего 3 предмета: Machine Learning, Probability Theory, Optimization Theory.
 
-В директории courses представлены .md файлы с описанием курсов: 3 из них соответствуют предметам выше, остальные 9 - похожи на них, но напрямую не связаны.
 
 ### API
 
@@ -93,7 +92,7 @@ student_name,subject_name,score
 - на вход строка-запрос и топ-k (дефолт k=2)
 - возвращает набор чанков
 - пример запроса: `vector_search("лектор по мл")`
-- пример ответа: { "chunks":  [ "text1", "text2" ] }
+- пример ответа: `{ "chunks":  [ "text1", "text2" ] }`
 
 ### Тесты
 
@@ -112,6 +111,8 @@ test_agent_vector_search_1_lecturer.py    # агент -> api 4 (вопросы 
 test_agent_vector_search_2_schedule.py    # агент -> api 4 (вопросы про расписание лекций)
 test_agent_vector_search_3_location.py    # агент -> api 4 (вопросы про аудиторию лекций)
 test_agent_vector_search_4_literature.py  # агент -> api 4 (вопросы про список литературы)
+
+test_agent_vector_search_5_multihop.py    # агент -> api 1..4 (вопросы, требующие обращения к нескольким api)
 ```
 
 Также есть базовые тесты на проверку api, вызовов llm, их общей конфигурации (должны проходить всегда):
@@ -188,26 +189,22 @@ agent_result = {
 # Начало работы (пример)
 
 1. Выберите среду выполнения:
-   - Локально
-   - В песочнице (см. [sigma_sandbox.md](sigma_sandbox.md) для подробностей)
-
+  - Локально
+  - В песочнице (см. [sigma_sandbox.md](sigma_sandbox.md) для подробностей)
 2. Установите Python (желательно через sberusersoft, рекомендованный - 3.11).
-
 3. Установите зависимости из `pyproject.toml`:
-   - Можно использовать виртуальное окружение или глобальную установку.
-   - Настройте index-url для sberosc (см. [sigma_sberosc.md](sigma_sberosc.md)).
-   - Установите пакеты через `pip install .`
-   - Опционально: можно через `uv sync`, если uv настроен.
-
+  - Можно использовать виртуальное окружение или глобальную установку.
+  - Настройте index-url для sberosc (см. [sigma_sberosc.md](sigma_sberosc.md)).
+  - Установите пакеты через `pip install .`
+  - Опционально: можно через `uv sync`, если uv настроен.
 4. Подготовьте индекс для работы с markdown-документами:
-   - Реализуйте функцию `get_embeddings` в `src/utils.py`.
-   - Проверьте реализацию через `pytest -m llm` (все pytest метки есть в pyproject.toml).
-   - Постройте индекс командой: `python src/prepare_data.py`.
-
+  - Реализуйте функцию `get_embeddings` в `src/utils.py`.
+  - Проверьте реализацию через `pytest -m llm` (все pytest метки есть в pyproject.toml).
+  - Постройте индекс командой: `python src/prepare_data.py`.
 5. Запустите тесты:
-   - Проверьте базовые функции командой: `pytest -m "api or unit"` (эти тесты должны пройти успешно).
-   - Проверьте функцию agent командой: `pytest -m agent` (эти тесты должны падать, т.к. функция agent() еще не реализована).
-   - Опционально: можно запускать отдельные тестовые файлы или выбирать нужные тесты с помощью параметра `-k`. Например, команда `pytest -k search` выполнит только те тесты, в названии которых есть подстрока `search`.
+  - Проверьте базовые функции командой: `pytest -m "api or unit"` (эти тесты должны пройти успешно).
+  - Проверьте функцию agent командой: `pytest -m agent` (эти тесты должны падать, т.к. функция agent() еще не реализована).
+  - Опционально: можно запускать отдельные тестовые файлы или выбирать нужные тесты с помощью параметра `-k`. Например, команда `pytest -k search` выполнит только те тесты, в названии которых есть подстрока `search`.
 
 Теперь можно начинать добавлять логику агента в src/agent.py, ориентируясь на кейсы из тестов test/agent.
 **Критерий** прохождения задания: все тесты из директории test/ проходят успешно (запуск `pytest`).
@@ -216,5 +213,7 @@ agent_result = {
 
 - Пример вызова API GigaChat на ИФТ с сертификатами [sigma_gigachat.md](sigma_gigachat.md)
 - Официальная документация API GigaChat ([ссылка](https://developers.sber.ru/docs/ru/gigachat/api/reference/rest/post-chat))
-- Документация ruff: форматирование кода ( [ссылка](https://docs.astral.sh/ruff/formatter/))
+- Документация ruff: форматирование кода ([ссылка](https://docs.astral.sh/ruff/formatter/))
 - Документация pytest: работа с метками ([ссылка](https://docs.pytest.org/en/stable/example/markers.html))
+- Документация uv: установка пакетов, работа с окружением ([ссылка](https://docs.astral.sh/uv/getting-started/))
+
