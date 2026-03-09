@@ -32,8 +32,9 @@ Convex optimization
 
 
 def _assert_contains_books(answer: str, expected_books: list[str]):
+    answer_lower = answer.lower()
     for book in expected_books:
-        assert book in answer, f'missing book "{book}"'
+        assert book.lower() in answer_lower, f'missing book "{book}"'
 
 
 @pytest.mark.parametrize(

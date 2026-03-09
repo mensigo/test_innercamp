@@ -50,12 +50,12 @@ def _format_top_students(top_students: list[dict[str, float | str]]) -> str:
 def _assert_matched_chunk_titles(matched_chunk_titles: list[str], min_count: int = 1):
     """Validate collected chunk titles count."""
     print(
-        '\n(sanity check): len(matched_chunk_titles) = {} > {} -> {}'.format(
-            len(matched_chunk_titles), min_count, len(matched_chunk_titles) > min_count
+        '\n(sanity check): len(matched_chunk_titles) = {} >= {} -> {}'.format(
+            len(matched_chunk_titles), min_count, len(matched_chunk_titles) >= min_count
         )
     )
-    assert len(matched_chunk_titles) > min_count, (
-        'len(matched_chunk_titles) should be greater than {}'.format(min_count)
+    assert len(matched_chunk_titles) >= min_count, (
+        'len(matched_chunk_titles) should be >= {}'.format(min_count)
     )
 
 
@@ -95,7 +95,7 @@ def run_case_1():
     matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, lecturer)
     print(f'action_4: chunk titles with lecturer substring -> {matched_chunk_titles}')
 
-    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=2)
 
     expected_result = {'subject': hardest_subject, 'lecturer': lecturer}
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
@@ -138,6 +138,8 @@ def run_case_2():
 
     matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, lecturer)
     print(f'action_4: chunk titles with lecturer substring -> {matched_chunk_titles}')
+
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
 
     expected_result = {'subject': simplest_subject, 'lecturer': lecturer}
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
@@ -189,7 +191,7 @@ def run_case_4():
     print(f'\nuser_query: {user_query}')
 
     rag_query = 'какой предмет ведет лектор Евгений Соколов'
-    rag_result = vector_search(query=rag_query, k=24)
+    rag_result = vector_search(query=rag_query, k=20)
 
     # true values
     resolved_subject = 'Machine Learning'
@@ -209,6 +211,8 @@ def run_case_4():
         '\naction_2: '
         f'get_top_students(subject_name={resolved_subject!r}) -> {top_students}'
     )
+
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
 
     top_students_pretty = _format_top_students(top_students)
     expected_result = {
@@ -243,7 +247,7 @@ def run_case_5():
     top_students = get_top_students(subject)
     print(f'\naction_2: get_top_students(subject_name={subject!r}) -> {top_students}')
 
-    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=2)
 
     top_students_pretty = _format_top_students(top_students)
     expected_result = {'subject': subject, 'top_students': top_students_pretty}
@@ -266,7 +270,7 @@ def run_case_6():
     resolved_subject = 'Optimization Theory'
 
     rag_query = 'лекция во вторник в аудитории П9'
-    rag_result = vector_search(query=rag_query, k=24)
+    rag_result = vector_search(query=rag_query, k=20)
     print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
 
     matched_chunk_titles = _collect_chunk_titles_with_substring(rag_result, 'П9')
@@ -278,7 +282,7 @@ def run_case_6():
         f'\naction_2: get_top_students(subject_name={resolved_subject!r}) -> {top_students}'
     )
 
-    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=3)
 
     top_students_surnames = ', '.join(row['name'].split()[0] for row in top_students)
     expected_result = {
@@ -303,7 +307,7 @@ def run_case_7():
     author_short = 'Семаков'
 
     rag_query = 'учебник Семаков'
-    rag_result = vector_search(query=rag_query, k=24)
+    rag_result = vector_search(query=rag_query, k=20)
     print(f'\naction_1: vector_search(query={rag_query!r}, k=...)')
 
     matched_chunk_titles = _collect_chunk_titles_with_substring(
@@ -319,11 +323,73 @@ def run_case_7():
         f'\naction_2: get_avg_score(subject_name={resolved_subject!r}) -> {avg_score}'
     )
 
-    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=2)
 
     expected_result = {
         'subject': resolved_subject,
         'avg_score': avg_score['avg_score'],
+    }
+    print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
+    print('-' * 80)
+    print()
+
+
+def run_case_8():
+    """
+    Multihop case 8: books for subject with average equal to global average.
+    """
+    user_query = (
+        'какие книги можно изучить студентам по направлению, '
+        'средний балл по которому наиболее близок к общему среднему по предметам'
+    )
+    print(f'{ANSI_CYAN}[8] Вопрос 8 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'\nuser_query: {user_query}')
+
+    # true values
+    resolved_subject = 'Методы оптимизации'
+    expected_books = ['Numerical optimization', 'Convex optimization']
+
+    subjects = sorted(students_df['subject_name'].dropna().unique().tolist())
+    print(f'\naction_1: known subjects from pandas -> {subjects}\n')
+
+    subject_to_avg: dict[str, float] = {}
+    for subject in subjects:
+        avg_result = get_avg_score(subject)
+        print(f'action_1: get_avg_score(subject_name={subject!r}) -> {avg_result}')
+        if avg_result:
+            subject_to_avg[subject] = float(avg_result['avg_score'])
+
+    overall_result = get_avg_overall_score()
+    print(f'\naction_2: get_avg_overall_score() -> {overall_result}')
+    overall_avg = float(overall_result['avg_score'])
+
+    matched_subject = min(
+        subject_to_avg.keys(),
+        key=lambda item: (abs(subject_to_avg[item] - overall_avg), item),
+    )
+    matched_avg = subject_to_avg[matched_subject]
+    print(
+        '\naction_3: choose subject with avg_score closest to overall_avg -> '
+        f'{matched_subject} ({matched_avg}), overall_avg={overall_avg}'
+    )
+
+    rag_query = f'литература по курсу {resolved_subject}'
+    rag_result = vector_search(query=rag_query, k=20)
+    print(f'\naction_4: rag_search(query={rag_query!r}, k=...)')
+
+    matched_chunk_titles = _collect_chunk_titles_with_substring(
+        rag_result, resolved_subject
+    )
+    print(f'action_4: chunk titles with subject substring -> {matched_chunk_titles}')
+    print(f'\naction_5: extract literature bullet points -> {expected_books}')
+
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=3)
+
+    expected_result = {
+        'subject': matched_subject,
+        'subject_avg': matched_avg,
+        'overall_avg': overall_avg,
+        'literature': expected_books,
     }
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
     print('-' * 80)
@@ -339,6 +405,7 @@ if __name__ == '__main__':
     parser.add_argument('-5', dest='case_5', action='store_true')
     parser.add_argument('-6', dest='case_6', action='store_true')
     parser.add_argument('-7', dest='case_7', action='store_true')
+    parser.add_argument('-8', dest='case_8', action='store_true')
     args = parser.parse_args()
 
     students_df = pd.read_csv('src/data/students.csv')
@@ -367,9 +434,11 @@ if __name__ == '__main__':
         selected_cases.append(6)
     if args.case_7:
         selected_cases.append(7)
+    if args.case_8:
+        selected_cases.append(8)
 
     if not selected_cases:
-        selected_cases = list(range(1, 7))
+        selected_cases = list(range(1, 9))
 
     if 1 in selected_cases:
         run_case_1()
@@ -385,3 +454,5 @@ if __name__ == '__main__':
         run_case_6()
     if 7 in selected_cases:
         run_case_7()
+    if 8 in selected_cases:
+        run_case_8()
