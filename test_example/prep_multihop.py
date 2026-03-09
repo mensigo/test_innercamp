@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 from pprint import pformat
+import re
 
 import pandas as pd
 
@@ -396,6 +397,65 @@ def run_case_8():
     print()
 
 
+def run_case_9():
+    """
+    Multihop case 9: count students above ML passing score from related subjects.
+    """
+    user_query = (
+        'курс по мл предполагает минимальный балл для успешного прохождения, '
+        'сколько студентов из топ10 по смежным направлениям его превышают'
+    )
+    print(f'{ANSI_CYAN}[9] Вопрос 9 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'\nuser_query: {user_query}')
+
+    # true values
+    resolved_subject = 'Машинное обучение'
+    passing_score = 4.3
+    related_subjects = ['Probability Theory', 'Optimization Theory']
+
+    rag_query = 'минимальный проходной балл курс машинного обучения'
+    rag_result = vector_search(query=rag_query, k=20)
+    print(f'\naction_1: rag_search(query={rag_query!r}, k=...)')
+
+    matched_chunk_titles = _collect_chunk_titles_with_substring(
+        rag_result, 'Минимальный проходной балл'
+    )
+    print(
+        f'action_1: chunk titles with minimal passing score substring -> {matched_chunk_titles}'
+    )
+    print(f'action_1: resolve passing score from RAG chunks -> {passing_score}')
+
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=2)
+
+    related_top_students: list[dict[str, str | float]] = []
+    for subject in related_subjects:
+        top_students = get_top_students(subject, k=10)
+        print(
+            f'\naction_2: get_top_students(subject_name={subject!r}, k=10) -> {top_students}'
+        )
+        related_top_students.extend(top_students)
+
+    count_above = sum(
+        float(row['score']) > passing_score for row in related_top_students
+    )
+    print(
+        '\naction_3: count scores > passing_score '
+        f'({passing_score}) among related top10 -> {count_above}'
+    )
+    print(f'\n(sanity check): count_above > 0 -> {count_above > 0}')
+    assert count_above > 0, 'count_above should be greater than 0'
+
+    expected_result = {
+        'subject': resolved_subject,
+        'passing_score': passing_score,
+        'count_above_passing_score': count_above,
+        'related_subjects': related_subjects,
+    }
+    print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
+    print('-' * 80)
+    print()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-1', dest='case_1', action='store_true')
@@ -406,6 +466,7 @@ if __name__ == '__main__':
     parser.add_argument('-6', dest='case_6', action='store_true')
     parser.add_argument('-7', dest='case_7', action='store_true')
     parser.add_argument('-8', dest='case_8', action='store_true')
+    parser.add_argument('-9', dest='case_9', action='store_true')
     args = parser.parse_args()
 
     students_df = pd.read_csv('src/data/students.csv')
@@ -436,9 +497,11 @@ if __name__ == '__main__':
         selected_cases.append(7)
     if args.case_8:
         selected_cases.append(8)
+    if args.case_9:
+        selected_cases.append(9)
 
     if not selected_cases:
-        selected_cases = list(range(1, 9))
+        selected_cases = list(range(1, 10))
 
     if 1 in selected_cases:
         run_case_1()
@@ -456,3 +519,5 @@ if __name__ == '__main__':
         run_case_7()
     if 8 in selected_cases:
         run_case_8()
+    if 9 in selected_cases:
+        run_case_9()

@@ -76,3 +76,14 @@ def test_agent_e2e_multihop_8_literature_for_course_closest_to_global_avg():
     answer = str(result.get('answer') or '').lower()
     for book in expected_books:
         assert book.lower() in answer, f'expected to find {book!r} in answer'
+
+
+def test_agent_e2e_multihop_9_students_above_ml_passing_score():
+    user_query = (
+        'курс по мл предполагает минимальный балл для успешного прохождения, '
+        'сколько студентов из топ10 по смежным направлениям его превышают'
+    )
+    expected_answer = '12'
+
+    result = agent(user_query)
+    assert str(result.get('answer') or '') == expected_answer
