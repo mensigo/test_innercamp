@@ -4,7 +4,7 @@ import pytest
 
 from src.agent import agent
 
-pytestmark = [pytest.mark.agent, pytest.mark.skip]
+pytestmark = [pytest.mark.agent]
 
 
 def test_agent_e2e_multihop_1_hardest_course_lecturer():
@@ -33,7 +33,7 @@ def test_agent_e2e_multihop_3_top10_opt_above_global_avg_count():
 
 def test_agent_e2e_multihop_4_top_students_with_specified_lecturer():
     user_query = 'топовые студенты по предмету лектора Евгения Соколова'
-    expected_answer = 'Васильев Артем (4.9), Павлова Ирина (4.8)'
+    expected_answer = 'Васильев Артем (4.9), Павлова Ирина (4.8), Новикова Дарья (4.7)'
 
     result = agent(user_query)
     assert str(result.get('answer') or '') == expected_answer
@@ -41,7 +41,9 @@ def test_agent_e2e_multihop_4_top_students_with_specified_lecturer():
 
 def test_agent_e2e_multihop_5_best_students_with_specified_seminarist():
     user_query = 'лучшие студенты по курсу при участии семинариста Каледина Максима'
-    expected_answer = 'Козлова Татьяна (4.9), Петрушина Виктория (4.9)'
+    expected_answer = (
+        'Козлова Татьяна (4.9), Петрушина Виктория (4.9), Никитина Наталья (4.8)'
+    )
 
     result = agent(user_query)
     assert str(result.get('answer') or '') == expected_answer
@@ -51,7 +53,7 @@ def test_agent_e2e_multihop_6_top_students_lastnames_with_specified_lecture_sche
     user_query = (
         'фамилии топ студентов, которых можно застать во вторник на лекции в П9'
     )
-    expected_answer = 'Ежик, Степанова'
+    expected_answer = 'Ежик, Степанова, Андреев'
 
     result = agent(user_query)
     assert str(result.get('answer') or '') == expected_answer

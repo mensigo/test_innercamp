@@ -33,11 +33,11 @@ def _format_top_students(rows: list[dict]) -> str:
 
 def _extract_k(route: dict) -> int:
     """Extract and validate k from route payload."""
-    raw_k = route.get('k', route.get('top_k', 2))
+    raw_k = route.get('k', route.get('top_k', 3))
     try:
         return int(raw_k)
     except (TypeError, ValueError):
-        return 2
+        return 3
 
 
 def _build_vector_query(user_query: str, vector_intent: dict) -> str:
