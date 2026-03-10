@@ -1,219 +1,28 @@
 """GigaChat API wrapper functions."""
 
-import requests
 
-from src import config, logger
-
-DEFAULT_CHAT_MODEL = 'GigaChat-2-Max'
-DEFAULT_EMBEDDINGS_MODEL = 'Embeddings'
-
-
-def post_chat_completions(payload: dict, verbose: bool = False) -> dict:
+def get_chat_completions(payload: dict, **kwargs) -> dict:
     """
     Generate model response based on messages.
-    Sends POST request to /chat/completions endpoint.
     """
-    url = f'{config.gigachat_base_url}/chat/completions'
+    # raise NotImplementedError('Not implemented')
+    from src_example import post_chat_completions
 
-    if 'model' not in payload:
-        payload['model'] = DEFAULT_CHAT_MODEL
-
-    try:
-        if verbose:
-            logger.debug('post/req: {}', payload)
-
-        response = requests.post(
-            url,
-            json=payload,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-
-        if verbose:
-            logger.debug('post/ans: {} | {}', response, response.text)
-
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.HTTPError as ex:
-        logger.exception('post/error: {}', ex)
-        text = ex.response.text if ex.response is not None else ''
-        return {'error': f'{ex} {text}'.strip()}
-
-    except requests.exceptions.RequestException as ex:
-        logger.exception('post/error: {}', ex)
-        return {'error': str(ex)}
+    return post_chat_completions(payload, **kwargs)
 
 
-def post_embeddings(payload: dict, verbose: bool = False) -> dict:
+def get_embeddings(payload: dict, **kwargs) -> list[float]:
     """
-    Create vector embeddings for text.
-    Sends POST request to /embeddings endpoint.
+    Create vector embeddings for input text.
+
+    Example input: {'input': 'машинное обучение'}
+    Example output: [0.935546875, -0.092529296]
     """
-    url = f'{config.gigachat_base_url}/embeddings'
+    # raise NotImplementedError('Not implemented')
+    from src_example import post_embeddings
 
-    if 'model' not in payload:
-        payload['model'] = DEFAULT_EMBEDDINGS_MODEL
+    assert 'input' in payload, 'input is required'
+    assert isinstance(payload['input'], str), 'input must be a string'
 
-    try:
-        if verbose:
-            logger.debug('post/req: {}', payload)
-
-        response = requests.post(
-            url,
-            json=payload,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-
-        if verbose:
-            logger.debug('post/ans: {} | {}', response, response.text[:500])
-
-        response.raise_for_status()
-        return response.json()
-
-    except requests.exceptions.HTTPError as ex:
-        logger.exception('post/error: {}', ex)
-        text = ex.response.text if ex.response is not None else ''
-        return {'error': f'{ex} {text}'.strip()}
-
-    except requests.exceptions.RequestException as ex:
-        logger.exception('post/error: {}', ex)
-        return {'error': str(ex)}
-
-
-def get_models() -> dict:
-    """
-    Retrieve list of available models.
-    Sends GET request to /models endpoint.
-    """
-    url = f'{config.gigachat_base_url}/models'
-    try:
-        response = requests.get(
-            url,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def get_files_list() -> dict:
-    """
-    Get list of uploaded files.
-    Sends GET request to /files endpoint.
-    """
-    url = f'{config.gigachat_base_url}/files'
-    try:
-        response = requests.get(
-            url,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def post_files(payload: dict) -> dict:
-    """
-    Upload file to storage.
-    Sends POST request to /files endpoint.
-    """
-    url = f'{config.gigachat_base_url}/files'
-    try:
-        response = requests.post(
-            url,
-            json=payload,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def post_files_delete(file_id: str) -> dict:
-    """
-    Delete file from storage.
-    Sends POST request to /files/{file_id}/delete endpoint.
-    """
-    url = f'{config.gigachat_base_url}/files/{file_id}/delete'
-    try:
-        response = requests.post(
-            url,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def get_files_content(file_id: str) -> dict:
-    """
-    Retrieve file content.
-    Sends GET request to /files/{file_id}/content endpoint.
-    """
-    url = f'{config.gigachat_base_url}/files/{file_id}/content'
-    try:
-        response = requests.get(
-            url,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def get_files_info(file_id: str) -> dict:
-    """
-    Get metadata for specific file.
-    Sends GET request to /files/{file_id} endpoint.
-    """
-    url = f'{config.gigachat_base_url}/files/{file_id}'
-    try:
-        response = requests.get(
-            url,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
-
-
-def get_tokens_count(payload: dict) -> dict:
-    """
-    Count tokens in provided texts.
-    Sends POST request to /tokens/count endpoint.
-    """
-    url = f'{config.gigachat_base_url}/tokens/count'
-    try:
-        response = requests.post(
-            url,
-            json=payload,
-            cert=(config.gigachat_cert_path, config.gigachat_key_path),
-            verify=config.gigachat_chain_path,
-            timeout=30,
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        return {'error': str(e)}
+    response = post_embeddings(payload, **kwargs)
+    return response['data'][0]['embedding']

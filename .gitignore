@@ -17,3 +17,12 @@ wheels/
 certs
 patches
 *.log
+*.txt
+
+plans/
+
+src_*/generated_data/
+src/data/courses/faiss.index
+src/data/courses/rag_chunks.json
+
+test/conftest.py

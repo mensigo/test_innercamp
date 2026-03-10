@@ -1,0 +1,240 @@
+import json
+
+from src import config, logger, post_chat_completions
+
+
+def select_tool_call(
+    message_history: list[dict] | str, **kwargs
+) -> tuple[int, tuple[str, dict] | None]:
+    """
+    Select tool via function calling for the given user input.
+    Accepts raw user text or prepared message history.
+    Returns:
+        200,(name,args) - tool selected
+        201,None - no tool selected
+        202,None - parsing error
+        203,None - request error
+    """
+    if isinstance(message_history, str):
+        message_history = [{'role': 'user', 'content': message_history}]
+
+    system_prompt = """
+Перед тобой диалог ассистента с пользователем. Определи последний запрос (intent) пользователя, затем подумай:
+- если пользователь спрашивает о японской поэзии, вызови rag_search;
+- если пользователь просит сгенерировать хайку/хокку (даже без указания темы), вызови generate_haiku.
+Вызывай ровно один инструмент.
+
+# ВАЖНО:
+- Если тема хайку не указана, все равно вызывай generate_haiku({}).
+- Если это вопрос о японской поэзии, перефразируй его в более формальный вид (это и будет question).
+- Пользователь может уточнять свой интент по ходу диалога.
+- Если ассистент уже спрашивал тему, а пользователь отвечает одним словом/фразой - это тема хайку.
+- Используй механизм function calling, НЕ пиши вызов инструмента в plain text.
+- В любом случае вызывай инструмент, даже если не уверен, что пользователь просит именно это.
+
+---
+
+# Примеры взаимодействия (generate_haiku)
+
+## Одна реплика
+
+1.
+Пользователь: Создай хайку о зимнем утре
+Ты: вызываешь инструмент generate_haiku({"theme": "Зимнее утро"})
+
+2.
+Пользователь: Просто хайку
+Ты: вызываешь инструмент generate_haiku({})
+
+3.
+Пользователь: пиши хокку мне
+Ты: вызываешь инструмент generate_haiku({})
+
+## Несколько реплик
+
+1.
+Пользователь: gen haiku
+Пользователь: winter
+Ты: вызываешь инструмент generate_haiku({"theme": "winter"})
+
+2.
+Пользователь: напиши хокку
+Пользователь: весеннее утро
+Ты: вызываешь инструмент generate_haiku({"theme": "Весеннее утро"})
+
+3.
+Пользователь: хайку скорее пиши
+Пользователь: апокалипсис
+Ты: вызываешь инструмент generate_haiku({"theme": "Апокалипсис"})
+
+---
+
+# Примеры взаимодействия (rag_search)
+
+## Одна реплика
+
+1.
+Пользователь: Что такое хайку?
+Ты: вызываешь инструмент rag_search({"question": "Что такое хайку?"})
+
+2.
+Пользователь: Когда был написан манъесю
+Ты: вызываешь инструмент rag_search({"question": "Дата написания Манъёсю"})
+
+3.
+Пользователь: Есть ли в старояпонском священные цифры?
+Ты: вызываешь инструмент rag_search({"question": "Священные цифры в старояпонском языке"})
+"""
+
+    # tool description
+
+    tools_giga = [
+        {
+            'name': 'rag_search',
+            'description': 'Поиск ответа на вопрос о японской поэзии',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'question': {
+                        'type': 'string',
+                        'description': 'Вопрос пользователя о японской поэзии',
+                    },
+                },
+                'required': [],
+            },
+            'few_shot_examples': [
+                {
+                    'request': 'Что такое хайку?',
+                    'params': {'question': 'Что такое хайку?'},
+                },
+                {
+                    'request': 'Есть ли в старояпонском священные цифры?',
+                    'params': {'question': 'Священные цифры в старояпонском языке?'},
+                },
+            ],
+            'return_parameters': {
+                'properties': {
+                    'answer': {
+                        'type': 'string',
+                        'description': 'Подробный ответ (например, исторический факт или число)',
+                    },
+                    'chunk_title_list': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Заголовки статей, например ["Японская поэзия", "Старояпонский язык", "Кайфусо"]',
+                    },
+                    'chunk_texts': {
+                        'type': 'array',
+                        'items': {'type': 'string'},
+                        'description': 'Тексты найденных фрагментов из источников',
+                    },
+                }
+            },
+        },
+        {
+            'name': 'generate_haiku',
+            'description': 'Генерация хайку по теме. Типовой запрос пользователя имеет вид:'
+            ' напиши/пиши/сгенери/сгенерируй/дай хайку/хокку/хоку/стих/стишок [о/об/про/просто/на тему...]',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'theme': {
+                        'type': 'string',
+                        'description': 'Тема хайку одним-двумя словами',
+                    },
+                },
+                'required': [],
+            },
+            'few_shot_examples': [
+                {
+                    'request': 'Напиши хайку о бурном море',
+                    'params': {'theme': 'Бурное море'},
+                },
+            ],
+            'return_parameters': {
+                'properties': {
+                    'haiku_text': {
+                        'type': 'string',
+                        'description': 'Сгенерированное хайку на заданную тему',
+                    },
+                    'syllables_per_line': {
+                        'type': 'array',
+                        'items': {'type': 'integer'},
+                        'description': 'Количество слогов по строкам',
+                    },
+                    'total_words': {
+                        'type': 'integer',
+                        'description': 'Общее число слов в хайку',
+                    },
+                    'error': {
+                        'type': 'string',
+                        'description': 'Описание ошибки, если генерация не удалась',
+                    },
+                }
+            },
+        },
+    ]
+    tools_openai = [
+        dict(
+            type='function',
+            function={
+                k: v for k, v in t.items() if k in ('name', 'description', 'parameters')
+            },
+        )
+        for t in tools_giga
+    ]
+    tools = tools_giga if config.insigma else tools_openai
+
+    # payload
+
+    payload = {
+        'messages': [
+            {'role': 'system', 'content': system_prompt},
+            *message_history,
+        ],
+        'tools': tools,
+        'tool_choice': 'required',
+        'temperature': config.freezing,
+    }
+    if config.insigma:
+        payload['function_call'] = None  # 'auto'
+        payload['functions'] = tools
+        del payload['tools']
+        del payload['tool_choice']
+
+    # request
+
+    response = post_chat_completions(payload, kwargs.get('verbose', False))
+
+    # response
+
+    if 'error' in response:
+        logger.critical('select_tool_call // LLM Error: {}'.format(response['error']))
+        return 203, None
+
+    try:
+        message = response['choices'][0]['message']
+
+        function_call = message.get('function_call')
+        if function_call:
+            name = function_call.get('name')
+            arguments = json.loads(function_call.get('arguments', '{}'))
+            logger.debug('select_tool_call // Selection OK')
+            return 200, (name, arguments)
+
+        tool_calls = message.get('tool_calls')
+        if tool_calls:
+            tool_call = tool_calls[0]
+            name = tool_call['function'].get('name')
+            arguments = json.loads(tool_call['function'].get('arguments', '{}'))
+            logger.debug('select_tool_call // Selection OK')
+            return 200, (name, arguments)
+
+        logger.warning('select_tool_call // LLM Selection Fail')
+        return 201, None
+
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as ex:
+        logger.opt(exception=True).critical(
+            f'select_tool_call // LLM Response Parse Error: {ex}'
+        )
+        return 202, None
