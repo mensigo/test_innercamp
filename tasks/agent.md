@@ -146,7 +146,7 @@ user_request = "топ студентов по мл"
 
 ```python
 agent_result = {
-    "answer": "...",
+    "answer": "Васильев Артем (4.9), Павлова Ирина (4.8), Новикова Дарья (4.7)",
     "token_usage": {
         "prompt_tokens": 18,
         "completion_tokens": 24,

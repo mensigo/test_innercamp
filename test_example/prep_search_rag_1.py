@@ -118,6 +118,54 @@ CASES_COMPLEX_LECTURER: list[VectorSearchCase] = [
     ),
 ]
 
+CASES_EXT_LECTURER: list[VectorSearchCase] = [
+    VectorSearchCase(
+        idx=19,
+        user_query='кто лектор по философии',
+        expected_answer='Семаков Сергей Львович',
+    ),
+    VectorSearchCase(
+        idx=20,
+        user_query='случайные процессы лектор',
+        expected_answer='Каледин Максим',
+    ),
+    VectorSearchCase(
+        idx=21,
+        user_query='кто ведет лекции по слупам',
+        expected_answer='Каледин Максим',
+    ),
+    VectorSearchCase(
+        idx=22,
+        user_query='лектор по байесовской машинке',
+        expected_answer='Дмитрий Петрович Ветров',
+    ),
+    VectorSearchCase(
+        idx=23,
+        user_query='введение в мл ведет лектор',
+        expected_answer='К.В. Воронцов',
+    ),
+    VectorSearchCase(
+        idx=24,
+        user_query='лектор графовые сети',
+        expected_answer='Никита Зелинский',
+    ),
+    VectorSearchCase(
+        idx=25,
+        user_query='кто читает лекции по оптам в машинке',
+        expected_answer='Д.А. Кропотов',
+    ),
+    VectorSearchCase(
+        idx=26,
+        user_query='годовой курс по теорверу - кто читает лекции',
+        expected_answer='Горяинова Елена Рудольфовна',
+    ),
+    VectorSearchCase(
+        idx=27,
+        user_query='лектор непрерывных оптов',
+        expected_answer='Гасников Александр Владимирович',
+    ),
+]
+
 
 def _first_row(text: str) -> str:
     """Get first non-empty row from chunk text."""
@@ -209,5 +257,10 @@ if __name__ == '__main__':
     print_cases(
         CASES_COMPLEX_LECTURER,
         'vector_search complex cases (lecturers)',
+        show_full_chunk=args.print,
+    )
+    print_cases(
+        CASES_EXT_LECTURER,
+        'vector_search ext cases (lecturers)',
         show_full_chunk=args.print,
     )

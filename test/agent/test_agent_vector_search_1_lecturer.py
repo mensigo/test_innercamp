@@ -46,3 +46,25 @@ def test_agent_e2e_vector_search_simple_lecturer(query: str, expected_answer: st
 def test_agent_e2e_vector_search_complex_lecturer(query: str, expected_answer: str):
     result = agent(query)
     assert str(result.get('answer') or '') == expected_answer
+
+
+@pytest.mark.parametrize(
+    ('query', 'expected_answer'),
+    [
+        ('кто лектор по философии', 'Семаков Сергей Львович'),
+        ('случайные процессы лектор', 'Каледин Максим'),
+        ('кто ведет лекции по слупам', 'Каледин Максим'),
+        ('лектор по байесовской машинке', 'Дмитрий Петрович Ветров'),
+        ('введение в мл ведет лектор', 'К.В. Воронцов'),
+        ('лектор графовые сети', 'Никита Зелинский'),
+        ('кто читает лекции по оптам в машинке', 'Д.А. Кропотов'),
+        (
+            'годовой курс по теорверу - кто читает лекции',
+            'Горяинова Елена Рудольфовна',
+        ),
+        ('лектор непрерывных оптов', 'Гасников Александр Владимирович'),
+    ],
+)
+def test_agent_e2e_vector_search_extra_lecturer(query: str, expected_answer: str):
+    result = agent(query)
+    assert str(result.get('answer') or '') == expected_answer
