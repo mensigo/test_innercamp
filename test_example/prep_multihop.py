@@ -28,14 +28,19 @@ students_df = None
 
 
 def _collect_chunk_titles_with_substring(
-    rag_result: dict[str, list[str]], needle: str
+    rag_result: dict[str, list[str]], needle: str, regex: bool = False
 ) -> list[str]:
-    """Collect first lines of chunks containing substring."""
+    """Collect first lines of chunks containing substring or regex."""
     needle_lower = needle.lower()
     matched_chunk_titles: list[str] = []
+
     for chunk in rag_result['chunks']:
-        if needle_lower not in chunk.lower():
+        if regex and not re.search(needle, chunk, flags=re.I):
             continue
+
+        if not regex and needle_lower not in chunk.lower():
+            continue
+
         first_row = chunk.strip().splitlines()[0].strip()
         matched_chunk_titles.append(first_row)
     return matched_chunk_titles
@@ -458,6 +463,103 @@ def run_case_9():
     print()
 
 
+def run_case_10():
+    """
+    Multihop case 10: surnames of students top-10 in both subjects and seminarists.
+    """
+    user_query = (
+        'фамилии студентов, которые входят в топ10 по обоим своим предметам '
+        'и при этом ведут семинары'
+    )
+    print(f'{ANSI_CYAN}[10] Вопрос 10 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
+    print(f'\nuser_query: {user_query}')
+
+    # true values
+    expected_surnames = ['Козлов', 'Николаева']
+
+    print('\naction_1: get_top_students(subject, k=10) per subject')
+    subject_to_top_students: dict[str, set[str]] = {}
+    subjects = sorted(students_df['subject_name'].dropna().unique().tolist())
+    for subject in subjects:
+        top_rows = get_top_students(subject, k=10)
+        top_students = sorted(row['name'] for row in top_rows)
+        subject_to_top_students[subject] = set(top_students)
+        pretty_top_rows = _format_top_students(top_rows)
+        print(
+            f'\naction_1: get_top_students(subject_name={subject!r}, k=10) -> {pretty_top_rows}'
+        )
+
+    student_to_subjects = (
+        students_df.groupby('student_name')['subject_name'].apply(list).to_dict()
+    )
+    top10_both_students: list[str] = []
+    for student, subjects in student_to_subjects.items():
+        if len(subjects) != 2:
+            raise ValueError(
+                f'student {student} has {len(subjects)} subjects, expected 2'
+            )
+
+        if all(
+            student in subject_to_top_students.get(subject, set())
+            for subject in subjects
+        ):
+            top10_both_students.append(student)
+
+    top10_both_students = sorted(top10_both_students)
+    print(
+        '\naction_2: students in top10 for both their subjects -> '
+        f'{", ".join(top10_both_students)} ({len(top10_both_students)} students)'
+    )
+
+    seminarist_surnames: list[str] = []
+    seminar_chunks_by_surname: dict[str, list[str]] = {}
+    for student_name in top10_both_students:
+        surname = student_name.split()[0]
+        rag_query = f'{student_name} семинар'
+        rag_result = vector_search(query=rag_query, k=20)
+        print(f'\naction_3: vector_search(query={rag_query!r}, k=...)')
+
+        surname_regex = rf'\b{surname}\b'
+        matched_chunk_titles = _collect_chunk_titles_with_substring(
+            rag_result, surname_regex, regex=True
+        )
+        print(
+            'action_3: chunk titles with surname ({}) substring -> {}'.format(
+                surname, matched_chunk_titles
+            )
+        )
+        if matched_chunk_titles:
+            seminarist_surnames.append(surname)
+            seminar_chunks_by_surname[surname] = matched_chunk_titles
+
+    resolved_surnames = sorted(set(seminarist_surnames))
+    print(
+        '\naction_4: keep students confirmed by RAG as seminar leaders -> '
+        f'{resolved_surnames}'
+    )
+
+    print(
+        '\n(sanity check): expected_surnames equals resolved_surnames -> '
+        f'{set(expected_surnames) == set(resolved_surnames)}'
+    )
+    assert set(expected_surnames) == set(resolved_surnames), (
+        'expected_surnames should equal resolved_surnames'
+    )
+
+    for expected_surname in expected_surnames:
+        matched_chunk_titles = seminar_chunks_by_surname.get(expected_surname, [])
+        print(
+            '\n(sanity check): matched chunks for expected surname '
+            f'{expected_surname} -> {matched_chunk_titles}'
+        )
+        _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
+
+    expected_result = {'surnames': ', '.join(expected_surnames)}
+    print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
+    print('-' * 80)
+    print()
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-1', dest='case_1', action='store_true')
@@ -469,6 +571,7 @@ if __name__ == '__main__':
     parser.add_argument('-7', dest='case_7', action='store_true')
     parser.add_argument('-8', dest='case_8', action='store_true')
     parser.add_argument('-9', dest='case_9', action='store_true')
+    parser.add_argument('-10', dest='case_10', action='store_true')
     args = parser.parse_args()
 
     students_df = pd.read_csv('src/data/students.csv')
@@ -501,9 +604,11 @@ if __name__ == '__main__':
         selected_cases.append(8)
     if args.case_9:
         selected_cases.append(9)
+    if args.case_10:
+        selected_cases.append(10)
 
     if not selected_cases:
-        selected_cases = list(range(1, 10))
+        selected_cases = list(range(1, 11))
 
     if 1 in selected_cases:
         run_case_1()
@@ -523,3 +628,5 @@ if __name__ == '__main__':
         run_case_8()
     if 9 in selected_cases:
         run_case_9()
+    if 10 in selected_cases:
+        run_case_10()

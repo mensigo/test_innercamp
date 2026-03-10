@@ -94,3 +94,14 @@ def test_agent_e2e_multihop_9_students_above_ml_passing_score():
 
     result = agent(user_query)
     assert str(result.get('answer') or '') == expected_answer
+
+
+def test_agent_e2e_multihop_10_surnames_of_students_top10_in_both_subjects_and_seminarists():
+    user_query = (
+        'фамилии студентов, которые входят в топ10 по обоим своим предметам '
+        'и при этом ведут семинары'
+    )
+    expected_answer = 'Козлов, Николаева'
+
+    result = agent(user_query)
+    assert str(result.get('answer') or '') == expected_answer
