@@ -68,11 +68,16 @@ def test_agent_e2e_multihop_7_avg_grade_for_course_with_specified_textbook_autho
 
 
 def test_agent_e2e_multihop_8_literature_for_course_closest_to_global_avg():
-    user_query = (
-        'какие книги можно изучить студентам по направлению, '
-        'средний балл по которому наиболее близок к общему среднему по предметам'
-    )
-    expected_books = ['Numerical optimization', 'Convex optimization']
+    user_query = 'какие книги можно изучить студентам по самому сложному предмету'
+    expected_books = [
+        'Курс теории вероятностей',
+        'Основные понятия теории вероятностей',
+        'Введение в теорию вероятностей и её приложения',
+        'Теория вероятностей',
+        'Теория вероятностей, случайные процессы и математическая статистика',
+        'Курс лекций по теории вероятностей и математической статистике',
+        'Элементы теории вероятностей и случайных процессов',
+    ]
 
     result = agent(user_query)
     answer = str(result.get('answer') or '').lower()

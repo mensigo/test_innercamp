@@ -337,18 +337,23 @@ def run_case_7():
 
 def run_case_8():
     """
-    Multihop case 8: books for subject with average equal to global average.
+    Multihop case 8: books for hardest subject.
     """
-    user_query = (
-        'какие книги можно изучить студентам по направлению, '
-        'средний балл по которому наиболее близок к общему среднему по предметам'
-    )
+    user_query = 'какие книги можно изучить студентам по самому сложному предмету'
     print(f'{ANSI_CYAN}[8] Вопрос 8 - {ANSI_BOLD}{user_query}{ANSI_RESET}')
     print(f'\nuser_query: {user_query}')
 
     # true values
-    resolved_subject = 'Методы оптимизации'
-    expected_books = ['Numerical optimization', 'Convex optimization']
+    resolved_subject = 'Теория вероятности'
+    expected_books = [
+        'Курс теории вероятностей',
+        'Основные понятия теории вероятностей',
+        'Введение в теорию вероятностей и её приложения',
+        'Теория вероятностей',
+        'Теория вероятностей, случайные процессы и математическая статистика',
+        'Курс лекций по теории вероятностей и математической статистике',
+        'Элементы теории вероятностей и случайных процессов',
+    ]
 
     subjects = sorted(students_df['subject_name'].dropna().unique().tolist())
     print(f'\naction_1: known subjects from pandas -> {subjects}\n')
@@ -360,36 +365,33 @@ def run_case_8():
         if avg_result:
             subject_to_avg[subject] = float(avg_result['avg_score'])
 
-    overall_result = get_avg_overall_score()
-    print(f'\naction_2: get_avg_overall_score() -> {overall_result}')
-    overall_avg = float(overall_result['avg_score'])
-
     matched_subject = min(
         subject_to_avg.keys(),
-        key=lambda item: (abs(subject_to_avg[item] - overall_avg), item),
+        key=lambda item: (subject_to_avg[item], item),
     )
     matched_avg = subject_to_avg[matched_subject]
     print(
-        '\naction_3: choose subject with avg_score closest to overall_avg -> '
-        f'{matched_subject} ({matched_avg}), overall_avg={overall_avg}'
+        '\naction_2: choose hardest subject by minimal avg_score -> '
+        f'{matched_subject} ({matched_avg})'
     )
 
     rag_query = f'литература по курсу {resolved_subject}'
     rag_result = vector_search(query=rag_query, k=20)
-    print(f'\naction_4: rag_search(query={rag_query!r}, k=...)')
+    print(f'\naction_3: rag_search(query={rag_query!r}, k=...)')
 
     matched_chunk_titles = _collect_chunk_titles_with_substring(
-        rag_result, resolved_subject
+        rag_result, expected_books[0]
     )
-    print(f'action_4: chunk titles with subject substring -> {matched_chunk_titles}')
-    print(f'\naction_5: extract literature bullet points -> {expected_books}')
+    print(
+        f'action_3: chunk titles with expected_books[0] substring -> {matched_chunk_titles}'
+    )
+    print(f'\naction_4: extract book titles -> {expected_books}')
 
-    _assert_matched_chunk_titles(matched_chunk_titles, min_count=3)
+    _assert_matched_chunk_titles(matched_chunk_titles, min_count=1)
 
     expected_result = {
         'subject': matched_subject,
         'subject_avg': matched_avg,
-        'overall_avg': overall_avg,
         'literature': expected_books,
     }
     print(f'\n{ANSI_BOLD}expected_result:{ANSI_RESET} {expected_result}\n')
